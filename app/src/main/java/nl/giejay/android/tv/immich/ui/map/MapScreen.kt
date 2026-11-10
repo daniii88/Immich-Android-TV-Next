@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +36,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
@@ -173,7 +172,7 @@ private fun WorldMap(
             MapBubble(
                 modifier = if (index == 0) Modifier.focusRequester(firstBubble) else Modifier,
                 cluster = cluster,
-                diameter = 14.dp + 26.dp * sqrt(cluster.count.toFloat() / maxCount),
+                diameter = 26.dp + 22.dp * sqrt(cluster.count.toFloat() / maxCount),
                 accent = accent,
                 selected = cluster === focused,
                 label = if (cluster === focused) cluster.label else null,
@@ -201,7 +200,7 @@ private fun MapBubble(
 ) {
     var hasFocus by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (hasFocus) 1.35f else 1f,
+        targetValue = if (hasFocus) 1.25f else 1f,
         animationSpec = tween(ImmichFocus.AnimationMillis),
         label = "bubbleScale",
     )
@@ -216,12 +215,22 @@ private fun MapBubble(
                 scaleY = scale
             }
             .drawBehind {
-                // soft glow around the core, stronger for the bubble in focus
-                val glow = size.minDimension * (if (selected) 2.6f else 1.9f)
+                // a beacon: a crisp core, a fine ring and a soft glow; the focused one is brighter and ringed in white.
+                // The core is a fraction of the touch area, so neighbours do not melt into a haze.
+                val core = size.minDimension * 0.24f
+                val ring = size.minDimension * 0.46f
+                val glow = size.minDimension * (if (selected) 1.5f else 1.0f)
                 drawCircle(
-                    Brush.radialGradient(listOf(accent.copy(alpha = if (selected) 0.55f else 0.35f), Color.Transparent), center, glow),
+                    Brush.radialGradient(listOf(accent.copy(alpha = if (selected) 0.40f else 0.22f), Color.Transparent), center, glow),
                     glow,
                 )
+                drawCircle(
+                    color = if (hasFocus) Color.White.copy(alpha = 0.95f) else accent.copy(alpha = 0.55f),
+                    radius = ring,
+                    style = Stroke(width = if (hasFocus) 2.5.dp.toPx() else 1.5.dp.toPx()),
+                )
+                drawCircle(Color.White.copy(alpha = 0.9f), core * 1.35f)
+                drawCircle(accent, core)
             }
             .onFocusChanged {
                 hasFocus = it.isFocused
@@ -230,16 +239,6 @@ private fun MapBubble(
             .clickable(interactionSource = null, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        // a lit sphere: bright in the middle, the accent colour at the rim, a fine ring that turns white in focus
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(listOf(Color.White.copy(alpha = 0.95f), accent.copy(alpha = 0.9f)), radius = diameter.value * 1.3f),
-                    CircleShape,
-                )
-                .border(if (hasFocus) 2.dp else 1.dp, Color.White.copy(alpha = if (hasFocus) 0.95f else 0.45f), CircleShape),
-        )
         if (label != null) {
             // the name of the bubble in focus, above it (below at the top edge of the map)
             val above = cluster.lat < 55.0
