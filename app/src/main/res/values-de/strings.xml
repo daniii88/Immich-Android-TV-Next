@@ -291,6 +291,7 @@
     <string name="places">Orte</string>
     <string name="tags">Tags</string>
     <string name="favorites">Favoriten</string>
+    <string name="memories">Erinnerungen</string>
     <string name="screensaver_only_landscape">Nur Querformat</string>
     <string name="screensaver_only_landscape_desc">Hochformatfotos im Bildschirmschoner überspringen.</string>
     <string name="screensaver_adb_intro">Die Bildschirmschoner-Einstellungen lassen sich auf diesem Gerät nicht öffnen. Aktiviere den Bildschirmschoner von Hand mit diesen Schritten:</string>

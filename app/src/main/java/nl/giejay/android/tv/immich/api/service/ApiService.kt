@@ -66,7 +66,7 @@ interface ApiService {
     ): Response<TimeBucketAssetsResponse>
 
     @GET("memories")
-    suspend fun getMemories(@Query("for") forDate: String): Response<List<Memory>>
+    suspend fun getMemories(@Query("for") forDate: String? = null): Response<List<Memory>>
 
     @GET("search/cities")
     suspend fun listCities(): Response<List<Asset>>

@@ -439,6 +439,9 @@ class ApiClient(private val config: ApiClientConfig) {
             service.getTimeBucket(timeBucket, withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)))
         }.map { it.toTimelineAssets() }
 
+    /** Every memory of the server (no date filter), for the memories page. */
+    suspend fun getAllMemories(): Either<String, List<Memory>> = executeAPICall(200) { service.getMemories() }
+
     /** "On this day" style memories for the current moment (server filters by day-of-year). */
     suspend fun getMemories(): Either<String, List<Memory>> {
         val date = LocalDate.now().toString()
