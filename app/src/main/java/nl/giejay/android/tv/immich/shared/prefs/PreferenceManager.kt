@@ -211,8 +211,8 @@ object PreferenceManager {
                 metadataPlugin
             ),
             viewPlugins = listOf(metadataPlugin, DateOverlayViewPlugin(), infoPanelPlugin, livePhotoPlugin),
-            // the info panel comes first so Back closes it before anything else reacts
-            keyEventPlugins = listOf(infoPanelPlugin, livePhotoPlugin, remoteControlsPlugin)
+            // Back closes what is on top: a playing live photo (it can cover an open info panel), then the panel
+            keyEventPlugins = listOf(livePhotoPlugin, infoPanelPlugin, remoteControlsPlugin)
         )
     }
 

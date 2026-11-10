@@ -40,6 +40,7 @@ import nl.giejay.mediaslider.plugin.SliderKeyEventResult
 import nl.giejay.mediaslider.plugin.SliderKeyEventState
 import nl.giejay.mediaslider.plugin.SliderViewPlugin
 import nl.giejay.mediaslider.plugin.SliderViewPluginContext
+import nl.giejay.mediaslider.view.MediaSliderController
 
 class LivePhotoState {
     /** The url of the motion video that is playing over the still; null when nothing plays. */
@@ -55,6 +56,9 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
     private var backCallback: OnBackPressedCallback? = null
     private var backDownConsumed = false
 
+    /** Set while the video plays during a running slideshow: its auto-advance timer is suspended until playback ends. */
+    private var resumeTimerWith: MediaSliderController? = null
+
     override fun provideControllerButton(context: ControllerPluginContext): ControllerButtonSpec? {
         val url = context.sliderItem.mainItem.livePhotoVideoUrl
         if (url == null || context.hasSecondaryItem) return null
@@ -63,6 +67,11 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
             icon = mutableStateOf(R.drawable.ic_live_photo),
             onClick = {
                 context.controller.hideOverlayControls()
+                // the still's auto-advance timer would page on and cut the video off
+                if (context.controller.slideShowPlaying) {
+                    context.controller.cancelNextAssetTimer()
+                    resumeTimerWith = context.controller
+                }
                 state?.playingUrl = url
                 backCallback?.isEnabled = true
             },
@@ -76,15 +85,12 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
 
     override fun attachView(rootView: ConstraintLayout, state: LivePhotoState?) {
         val liveState = state ?: return
-        backCallback = registerViewerBackCallback(rootView) { liveState.playingUrl = null }
+        backCallback = registerViewerBackCallback(rootView) { stopPlayback() }
         val view = createOverlayView(rootView.context) {
             val url = liveState.playingUrl
             if (url != null) {
                 Box(Modifier.fillMaxSize().background(Color.Black)) {
-                    LivePhotoPlayer(url) {
-                        liveState.playingUrl = null
-                        backCallback?.isEnabled = false
-                    }
+                    LivePhotoPlayer(url) { stopPlayback() }
                 }
             }
         }
@@ -107,7 +113,8 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
         handler: Handler,
         state: LivePhotoState?
     ) {
-        // the viewer paged on: the video belongs to the photo before
+        // the viewer paged on: the video belongs to the photo before, and the controller started the timer of the new page
+        resumeTimerWith = null
         state?.playingUrl = null
         backCallback?.isEnabled = false
     }
@@ -115,15 +122,23 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
     override fun onDestroy(context: SliderViewPluginContext, state: LivePhotoState?) {
         // the slider view runs this when the viewer is paused (Home, another app): the video must not keep playing,
         // and its audio must not go on in the background; the composition is not disposed by a pause
+        resumeTimerWith = null
         state?.playingUrl = null
         backCallback?.isEnabled = false
+    }
+
+    /** Ends the playback (video done, Back) and lets a running slideshow go on with its timer. */
+    private fun stopPlayback() {
+        state?.playingUrl = null
+        backCallback?.isEnabled = false
+        resumeTimerWith?.let { if (it.slideShowPlaying) it.startTimerNextAsset() }
+        resumeTimerWith = null
     }
 
     override fun onKeyDown(event: KeyEvent, state: SliderKeyEventState): SliderKeyEventResult {
         val live = this.state ?: return SliderKeyEventResult.UNHANDLED
         if (live.playingUrl != null && event.keyCode == KeyEvent.KEYCODE_BACK) {
-            live.playingUrl = null
-            backCallback?.isEnabled = false
+            stopPlayback()
             backDownConsumed = true
             return SliderKeyEventResult.HANDLED_CONSUME
         }
