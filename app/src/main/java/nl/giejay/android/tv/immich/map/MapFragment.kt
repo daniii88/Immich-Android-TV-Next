@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,8 @@ import nl.giejay.android.tv.immich.places.PlacesFragment
 import nl.giejay.android.tv.immich.ui.immichComposeView
 import nl.giejay.android.tv.immich.ui.map.MapScreen
 import nl.giejay.android.tv.immich.ui.map.MapUiState
+import nl.giejay.android.tv.immich.ui.map.MapVectors
+import nl.giejay.android.tv.immich.ui.map.buildMapVectors
 import nl.giejay.android.tv.immich.ui.map.MapZoomState
 import timber.log.Timber
 
@@ -47,7 +50,15 @@ class MapFragment : Fragment() {
                 resources.openRawResource(R.raw.world_land_dots).use { WorldDots.decode(it.readBytes()) }
             }
             LaunchedEffect(zoom.changes) { zoomBack.isEnabled = zoom.isZoomed }
-            MapScreen(state, landDots, zoom, onOpenCity = ::openCity)
+            // the coastlines are built off the main thread (30 thousand points); until then the map shows dots only
+            val vectors by produceState<MapVectors?>(null) {
+                value = withContext(Dispatchers.Default) {
+                    val land = resources.openRawResource(R.raw.world_land_50m).use { WorldVectors.parse(it.readBytes()) }
+                    val borders = resources.openRawResource(R.raw.world_borders_50m).use { WorldVectors.parse(it.readBytes()) }
+                    buildMapVectors(land, borders)
+                }
+            }
+            MapScreen(state, landDots, vectors, zoom, onOpenCity = ::openCity)
         }
     }
 

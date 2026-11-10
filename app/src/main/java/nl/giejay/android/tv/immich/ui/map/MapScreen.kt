@@ -51,7 +51,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
@@ -134,6 +136,7 @@ class MapZoomState {
 fun MapScreen(
     state: MapUiState,
     landDots: BooleanArray,
+    vectors: MapVectors?,
     zoom: MapZoomState,
     onOpenCity: (PlaceCity) -> Unit,
     modifier: Modifier = Modifier,
@@ -153,7 +156,7 @@ fun MapScreen(
             MapUiState.Loading -> Message(stringResource(R.string.info_loading))
             MapUiState.Empty -> Message(stringResource(R.string.map_empty))
             is MapUiState.Failed -> Message(state.message)
-            is MapUiState.Ready -> MapContent(state.cities, landDots, zoom, onOpenCity)
+            is MapUiState.Ready -> MapContent(state.cities, landDots, vectors, zoom, onOpenCity)
         }
     }
 }
@@ -172,7 +175,13 @@ private fun MapCluster.key(): String = cities.first().let { "${it.city}|${it.cou
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun MapContent(cities: List<PlaceCity>, landDots: BooleanArray, zoom: MapZoomState, onOpenCity: (PlaceCity) -> Unit) {
+private fun MapContent(
+    cities: List<PlaceCity>,
+    landDots: BooleanArray,
+    vectors: MapVectors?,
+    zoom: MapZoomState,
+    onOpenCity: (PlaceCity) -> Unit,
+) {
     val viewport = zoom.viewport
     val clusters = remember(cities, viewport) { clustersFor(cities, viewport) }
     var focused by remember(clusters) { mutableStateOf(clusters.first()) }
@@ -221,6 +230,7 @@ private fun MapContent(cities: List<PlaceCity>, landDots: BooleanArray, zoom: Ma
             WorldMap(
                 clusters = clusters,
                 landDots = landDots,
+                vectors = vectors,
                 maxCount = maxCount,
                 viewport = viewport,
                 zoomed = zoom.isZoomed,
@@ -248,6 +258,7 @@ private fun MapContent(cities: List<PlaceCity>, landDots: BooleanArray, zoom: Ma
 private fun WorldMap(
     clusters: List<MapCluster>,
     landDots: BooleanArray,
+    vectors: MapVectors?,
     maxCount: Int,
     viewport: MapViewport,
     zoomed: Boolean,
@@ -281,13 +292,27 @@ private fun WorldMap(
         val mapWidth = maxWidth
         val mapHeight = maxHeight
         Canvas(Modifier.fillMaxSize()) {
+            // Wide views are a dot matrix of the coarse land mask. Zooming in, the dots give way to coastlines, land and
+            // country borders (1:50m data): fully dots from 150 degrees wide upwards, fully vector below 60.
+            val detail = ((150f - shown.width.toFloat()) / 90f).coerceIn(0f, 1f)
+            if (vectors != null && detail > 0f) {
+                val scale = size.width / shown.width.toFloat()
+                withTransform({
+                    // lon/-lat degrees to pixels: shift the view's corner to the origin, then scale
+                    scale(scale, scale, Offset.Zero)
+                    translate(-shown.lonMin.toFloat(), shown.latTop.toFloat())
+                }) {
+                    drawPath(vectors.land, dotColor.copy(alpha = 0.10f * detail), style = Fill)
+                    drawPath(vectors.land, dotColor.copy(alpha = 0.40f * detail), style = Stroke(width = 1.2.dp.toPx() / scale))
+                    drawPath(vectors.borders, dotColor.copy(alpha = 0.28f * detail), style = Stroke(width = 1.dp.toPx() / scale))
+                }
+            }
             // Dots keep their size and spacing on screen at every zoom; each looks up the land mask at its position.
-            // Zoomed in, the 1.5 degree mask gets coarse, so the land only hints at where things are.
             val step = size.width / WorldDots.COLS
             val radius = step * 0.30f
             val cellDegrees = 360.0 / WorldDots.COLS
-            val zoomFade = (shown.width / MapViewport.WORLD.width).toFloat().coerceIn(0.35f, 1f)
-            val color = dotColor.copy(alpha = 0.22f * zoomFade)
+            val color = dotColor.copy(alpha = 0.22f * (1f - detail))
+            if (detail >= 1f) return@Canvas
             val columns = (size.width / step).toInt()
             val rows = (size.height / step).toInt()
             for (row in 0 until rows) {
