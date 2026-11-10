@@ -50,6 +50,10 @@ object ApiUtil {
         }
     }
 
+    fun getUserProfileImage(userId: String): String {
+        return "${hostName().lowercase()}/api/users/$userId/profile-image"
+    }
+
     fun getPersonThumbnail(personId: UUID): String {
         return "${hostName().lowercase()}/api/people/$personId/thumbnail"
     }

@@ -367,7 +367,7 @@ data object SHOW_PARTNER_PHOTOS_IN_TIMELINE : BooleanPref(false,
     ImmichApplication.appContext!!.getString(R.string.show_partner_photos_in_timeline_desc))
 
 // other
-data object ALBUMS_SORTING : EnumByTitlePref<AlbumsOrder>(AlbumsOrder.LAST_UPDATED,
+data object ALBUMS_SORTING : EnumByTitlePref<AlbumsOrder>(AlbumsOrder.NEWEST_PHOTOS,
     ImmichApplication.appContext!!.getString(R.string.albums),
     ImmichApplication.appContext!!.getString(R.string.albums_sorting_text)) {
 
@@ -377,6 +377,19 @@ data object ALBUMS_SORTING : EnumByTitlePref<AlbumsOrder>(AlbumsOrder.LAST_UPDAT
 
     override fun getEnumEntries(): Array<AlbumsOrder> {
         return AlbumsOrder.entries.toTypedArray();
+    }
+}
+
+data object ALBUMS_FILTER : EnumByTitlePref<AlbumsFilter>(AlbumsFilter.MINE,
+    ImmichApplication.appContext!!.getString(R.string.albums_filter),
+    ImmichApplication.appContext!!.getString(R.string.albums_filter_text)) {
+
+    override fun fromPrefValue(prefValue: String): AlbumsFilter {
+        return AlbumsFilter.valueOfSafe(prefValue, defaultValue)
+    }
+
+    override fun getEnumEntries(): Array<AlbumsFilter> {
+        return AlbumsFilter.entries.toTypedArray()
     }
 }
 
@@ -508,6 +521,7 @@ data object HIDDEN_HOME_ITEMS : StringSetPref(
         ImmichApplication.appContext!!.getString(R.string.seasonal),
         ImmichApplication.appContext!!.getString(R.string.tags),
         ImmichApplication.appContext!!.getString(R.string.archive),
+        ImmichApplication.appContext!!.getString(R.string.partners),
     ), "", "")
 
 /**
@@ -534,6 +548,8 @@ data object HOME_PAGE_TIMELINE : HomePageVisiblePref(R.string.timeline)
 data object HOME_PAGE_SEARCH : HomePageVisiblePref(R.string.search)
 data object HOME_PAGE_ALBUMS : HomePageVisiblePref(R.string.albums)
 data object HOME_PAGE_PHOTOS : HomePageVisiblePref(R.string.photos)
+data object HOME_PAGE_FAVORITES : HomePageVisiblePref(R.string.favorites)
+data object HOME_PAGE_MEMORIES : HomePageVisiblePref(R.string.memories)
 data object HOME_PAGE_VIDEOS : HomePageVisiblePref(R.string.videos)
 data object HOME_PAGE_RANDOM : HomePageVisiblePref(R.string.random)
 data object HOME_PAGE_PEOPLE : HomePageVisiblePref(R.string.people)
@@ -543,6 +559,7 @@ data object HOME_PAGE_FOLDERS : HomePageVisiblePref(R.string.folders)
 data object HOME_PAGE_PLACES : HomePageVisiblePref(R.string.places)
 data object HOME_PAGE_TAGS : HomePageVisiblePref(R.string.tags)
 data object HOME_PAGE_ARCHIVE : HomePageVisiblePref(R.string.archive)
+data object HOME_PAGE_PARTNERS : HomePageVisiblePref(R.string.partners)
 
 data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getString(R.string.home_pages), "view_pages",
     listOf(PrefCategory("", listOf(
@@ -550,6 +567,8 @@ data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getS
         HOME_PAGE_SEARCH,
         HOME_PAGE_ALBUMS,
         HOME_PAGE_PHOTOS,
+        HOME_PAGE_FAVORITES,
+        HOME_PAGE_MEMORIES,
         HOME_PAGE_VIDEOS,
         HOME_PAGE_RANDOM,
         HOME_PAGE_PEOPLE,
@@ -558,7 +577,8 @@ data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getS
         HOME_PAGE_FOLDERS,
         HOME_PAGE_PLACES,
         HOME_PAGE_TAGS,
-        HOME_PAGE_ARCHIVE
+        HOME_PAGE_ARCHIVE,
+        HOME_PAGE_PARTNERS
     )))
 )
 
@@ -718,6 +738,7 @@ data object ViewOrderingPrefScreen : PrefScreen(ImmichApplication.appContext!!.g
         PrefCategory("",
             listOf(
                 ALBUMS_SORTING,
+                ALBUMS_FILTER,
                 PHOTOS_SORTING,
                 ALL_ASSETS_SORTING)
         )

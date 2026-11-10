@@ -10,6 +10,7 @@ import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.AssetResponse
 import nl.giejay.android.tv.immich.api.model.Folder
 import nl.giejay.android.tv.immich.api.model.Memory
+import nl.giejay.android.tv.immich.api.model.Partner
 import nl.giejay.android.tv.immich.api.model.Person
 import nl.giejay.android.tv.immich.api.model.TagInfo
 import nl.giejay.android.tv.immich.api.model.SearchRequest
@@ -22,6 +23,9 @@ import nl.giejay.android.tv.immich.api.model.toTimelineAssets
 import nl.giejay.android.tv.immich.api.service.ApiService
 import nl.giejay.android.tv.immich.api.util.ApiUtil.executeAPICall
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
+import nl.giejay.android.tv.immich.shared.prefs.AlbumsFilter
+import nl.giejay.android.tv.immich.shared.prefs.mergeAlbums
+import nl.giejay.android.tv.immich.shared.prefs.onlySharedAlbums
 import nl.giejay.android.tv.immich.shared.prefs.ContentType
 import nl.giejay.android.tv.immich.shared.prefs.DEBUG_MODE
 import nl.giejay.android.tv.immich.shared.prefs.DISABLE_SSL_VERIFICATION
@@ -217,6 +221,28 @@ class ApiClient(private val config: ApiClientConfig) {
     suspend fun listAlbums(assetId: Option<String> = None): Either<String, List<Album>> {
         return executeAPICall(200) { service.listAlbums(assetId.getOrNull()) }
     }
+
+    /**
+     * The album list for the albums page. The server's default list holds the user's own albums, `shared=true` the
+     * albums shared with or by the user; "all" merges both.
+     */
+    suspend fun listAlbums(filter: AlbumsFilter): Either<String, List<Album>> = when (filter) {
+        AlbumsFilter.MINE -> executeAPICall(200) { service.listAlbums() }
+        AlbumsFilter.SHARED -> executeAPICall(200) { service.listAlbums(shared = true) }.map { onlySharedAlbums(it) }
+        AlbumsFilter.ALL -> executeAPICall(200) { service.listAlbums() }.flatMap { own ->
+            executeAPICall(200) { service.listAlbums(shared = true) }.map { mergeAlbums(own, it) }
+        }
+    }
+
+    /** The users who share their library with this user. */
+    suspend fun listPartners(): Either<String, List<Partner>> = executeAPICall(200) { service.listPartners() }
+
+    /** The months of a partner's library, newest first. */
+    suspend fun getPartnerTimeBuckets(userId: String): Either<String, List<TimeBucketSummary>> =
+        executeAPICall(200) { service.getTimeBuckets(userId = userId) }
+
+    suspend fun getPartnerTimeBucket(userId: String, timeBucket: String): Either<String, List<TimelineAsset>> =
+        executeAPICall(200) { service.getTimeBucket(timeBucket, userId = userId) }.map { it.toTimelineAssets() }
 
     suspend fun listPeople(): Either<String, List<Person>> {
         return executeAPICall(200) { service.listPeople() }.map { response -> response.people.filter { !it.name.isNullOrBlank() } }
@@ -438,6 +464,9 @@ class ApiClient(private val config: ApiClientConfig) {
         executeAPICall(200) {
             service.getTimeBucket(timeBucket, withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)))
         }.map { it.toTimelineAssets() }
+
+    /** Every memory of the server (no date filter), for the memories page. */
+    suspend fun getAllMemories(): Either<String, List<Memory>> = executeAPICall(200) { service.getMemories() }
 
     /** "On this day" style memories for the current moment (server filters by day-of-year). */
     suspend fun getMemories(): Either<String, List<Memory>> {

@@ -15,6 +15,6 @@ class ApiServiceAlbumParamsTest {
             .filterIsInstance<Query>()
             .map { it.value }
 
-        assertEquals(listOf("assetId"), queryParamNames)
+        assertEquals(listOf("assetId", "shared"), queryParamNames)
     }
 }

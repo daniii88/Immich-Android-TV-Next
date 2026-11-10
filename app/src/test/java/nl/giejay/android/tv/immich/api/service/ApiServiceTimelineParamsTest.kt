@@ -9,7 +9,7 @@ import retrofit2.http.Query
 class ApiServiceTimelineParamsTest {
 
     @Test
-    fun `getTimeBuckets sends order visibility and withPartners query params`() {
+    fun `getTimeBuckets sends order visibility and withPartners query params (and userId for a partner library)`() {
         val method = ApiService::class.java.methods.first { it.name == "getTimeBuckets" }
 
         val queryParamNames = method.parameterAnnotations
@@ -18,11 +18,11 @@ class ApiServiceTimelineParamsTest {
             .map { it.value }
 
         // VIS-02: visibility=timeline must remain available (defaults in the Kotlin signature)
-        assertEquals(listOf("order", "visibility", "withPartners"), queryParamNames)
+        assertEquals(listOf("order", "visibility", "withPartners", "userId"), queryParamNames)
     }
 
     @Test
-    fun `getTimeBucket sends timeBucket order visibility and withPartners query params`() {
+    fun `getTimeBucket sends timeBucket order visibility and withPartners query params (and userId for a partner library)`() {
         val method = ApiService::class.java.methods.first { it.name == "getTimeBucket" }
 
         val queryParamNames = method.parameterAnnotations
@@ -30,7 +30,7 @@ class ApiServiceTimelineParamsTest {
             .filterIsInstance<Query>()
             .map { it.value }
 
-        assertEquals(listOf("timeBucket", "order", "visibility", "withPartners"), queryParamNames)
+        assertEquals(listOf("timeBucket", "order", "visibility", "withPartners", "userId"), queryParamNames)
     }
 
     // Regression test for issue #157: partner-shared photos never showed up in the Timeline

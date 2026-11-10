@@ -243,8 +243,6 @@
     <string name="order_alphabetically_za">По алфавиту (Я–А)</string>
     <string name="order_newest_oldest">Новые — Старые</string>
     <string name="order_oldest_newest">Старые — Новые</string>
-    <string name="order_last_updated">Сначала новые</string>
-    <string name="order_least_updated">Сначала старые</string>
 
     <!-- Interval titles -->
     <string name="interval_1_second">1 секунда</string>
@@ -301,6 +299,24 @@
     <string name="places">Места</string>
     <string name="tags">Теги</string>
     <string name="favorites">Избранное</string>
+    <string name="memories">Воспоминания</string>
+    <string name="info_title">Информация</string>
+    <string name="info_loading">Загрузка…</string>
+    <string name="info_date">Дата</string>
+    <string name="info_description">Описание</string>
+    <string name="info_camera">Камера</string>
+    <string name="info_lens">Объектив</string>
+    <string name="info_exposure">Экспозиция</string>
+    <string name="info_location">Место</string>
+    <string name="info_resolution">Разрешение</string>
+    <string name="info_file_size">Размер файла</string>
+    <string name="info_albums">Альбомы</string>
+    <string name="albums_filter">Показывать альбомы</string>
+    <string name="albums_filter_text">Какие альбомы показывать: свои, общие или все</string>
+    <string name="albums_filter_mine">Мои альбомы</string>
+    <string name="albums_filter_shared">Общие альбомы</string>
+    <string name="albums_filter_all">Все альбомы</string>
+    <string name="partners">Партнёры</string>
     <string name="screensaver_only_landscape">Только альбомная ориентация</string>
     <string name="screensaver_only_landscape_desc">Пропускать портретные фото в заставке.</string>
     <string name="image_cache_size">Размер кэша изображений (нужен перезапуск)</string>

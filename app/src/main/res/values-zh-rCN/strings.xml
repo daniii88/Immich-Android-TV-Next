@@ -250,8 +250,6 @@
     <string name="order_alphabetically_za">按字母顺序（Z-A）</string>
     <string name="order_newest_oldest">最新 — 最旧</string>
     <string name="order_oldest_newest">最旧 — 最新</string>
-    <string name="order_last_updated">最近更新</string>
-    <string name="order_least_updated">最久未更新</string>
 
     <!-- Interval titles -->
     <string name="interval_1_second">1 秒</string>
@@ -307,6 +305,24 @@
     <string name="places">地点</string>
     <string name="tags">标签</string>
     <string name="favorites">收藏</string>
+    <string name="memories">回忆</string>
+    <string name="info_title">信息</string>
+    <string name="info_loading">加载中…</string>
+    <string name="info_date">日期</string>
+    <string name="info_description">描述</string>
+    <string name="info_camera">相机</string>
+    <string name="info_lens">镜头</string>
+    <string name="info_exposure">曝光</string>
+    <string name="info_location">位置</string>
+    <string name="info_resolution">分辨率</string>
+    <string name="info_file_size">文件大小</string>
+    <string name="info_albums">相册</string>
+    <string name="albums_filter">显示相册</string>
+    <string name="albums_filter_text">显示哪些相册：自己的、共享的或全部</string>
+    <string name="albums_filter_mine">我的相册</string>
+    <string name="albums_filter_shared">共享相册</string>
+    <string name="albums_filter_all">全部相册</string>
+    <string name="partners">伙伴</string>
     <string name="screensaver_only_landscape">仅横向照片</string>
     <string name="screensaver_only_landscape_desc">屏保中跳过竖向照片。</string>
     <string name="image_cache_size">图片缓存大小（需重启）</string>

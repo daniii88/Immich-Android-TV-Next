@@ -24,6 +24,9 @@ import nl.giejay.android.tv.immich.assets.RandomAssetsFragment
 import nl.giejay.android.tv.immich.assets.RecentAssetsFragment
 import nl.giejay.android.tv.immich.assets.SimilarTimeAssetsFragment
 import nl.giejay.android.tv.immich.assets.ArchiveFragment
+import nl.giejay.android.tv.immich.assets.FavoritesFragment
+import nl.giejay.android.tv.immich.memories.MemoriesFragment
+import nl.giejay.android.tv.immich.partners.PartnersFragment
 import nl.giejay.android.tv.immich.assets.VideosFragment
 import nl.giejay.android.tv.immich.people.PeopleFragment
 import nl.giejay.android.tv.immich.places.PlacesFragment
@@ -61,6 +64,8 @@ class HomeFragment : Fragment(), HomeNavHost {
                 AlbumFragment().apply { arguments = bundleOf("selectionMode" to false) }
             },
             Page(getString(R.string.photos), ImmichIcons.Photos) { AllAssetFragment() },
+            Page(getString(R.string.favorites), ImmichIcons.Favorites) { FavoritesFragment() },
+            Page(getString(R.string.memories), ImmichIcons.Memories) { MemoriesFragment() },
             Page(getString(R.string.videos), ImmichIcons.Videos) { VideosFragment() },
             Page(getString(R.string.random), ImmichIcons.Random) { RandomAssetsFragment() },
             Page(getString(R.string.people), ImmichIcons.People) { PeopleFragment() },
@@ -70,6 +75,7 @@ class HomeFragment : Fragment(), HomeNavHost {
             Page(getString(R.string.places), ImmichIcons.Places) { PlacesFragment() },
             Page(getString(R.string.tags), ImmichIcons.Tags) { TagsFragment() },
             Page(getString(R.string.archive), ImmichIcons.Archive) { ArchiveFragment() },
+            Page(getString(R.string.partners), ImmichIcons.Partners) { PartnersFragment() },
             Page(getString(R.string.edit), ImmichIcons.Edit, separated = true) { GridFragment(hideProgressBar = true) },
             Page(getString(R.string.settings), ImmichIcons.Settings) { SettingsFragment() },
         )
