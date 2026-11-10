@@ -51,9 +51,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PointMode
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
@@ -291,28 +292,31 @@ private fun WorldMap(
     ) {
         val mapWidth = maxWidth
         val mapHeight = maxHeight
+        // with the vectors loaded, the dots come from the real coastlines at every zoom (finer when zoomed in); until
+        // then, and as a fallback, from the coarse mask of the world view
+        val landDotsFromVectors = remember(vectors) { vectors?.let { LandDots(it) } }
+        val dotPaint = remember { Paint().apply { strokeCap = StrokeCap.Round; isAntiAlias = true } }
         Canvas(Modifier.fillMaxSize()) {
-            // Wide views are a dot matrix of the coarse land mask. Zooming in, the dots give way to coastlines, land and
-            // country borders (1:50m data): fully dots from 150 degrees wide upwards, fully vector below 60.
-            val detail = ((150f - shown.width.toFloat()) / 90f).coerceIn(0f, 1f)
-            if (vectors != null && detail > 0f) {
-                val scale = size.width / shown.width.toFloat()
-                withTransform({
-                    // lon/-lat degrees to pixels: shift the view's corner to the origin, then scale
-                    scale(scale, scale, Offset.Zero)
-                    translate(-shown.lonMin.toFloat(), shown.latTop.toFloat())
-                }) {
-                    drawPath(vectors.land, dotColor.copy(alpha = 0.10f * detail), style = Fill)
-                    drawPath(vectors.land, dotColor.copy(alpha = 0.40f * detail), style = Stroke(width = 1.2.dp.toPx() / scale))
-                    drawPath(vectors.borders, dotColor.copy(alpha = 0.28f * detail), style = Stroke(width = 1.dp.toPx() / scale))
-                }
+            val baseStep = size.width / WorldDots.COLS
+            val vectorDots = landDotsFromVectors
+            if (vectorDots != null) {
+                val step = dotStep(baseStep, shown.width)
+                val cols = (size.width / step).toInt()
+                val rows = (size.height / step).toInt()
+                vectorDots.update(shown, cols, rows, size.width, size.height)
+                val canvas = drawContext.canvas
+                dotPaint.strokeWidth = step * 0.6f
+                dotPaint.color = dotColor.copy(alpha = 0.26f)
+                canvas.drawRawPoints(PointMode.Points, vectorDots.landPoints, dotPaint)
+                dotPaint.color = dotColor.copy(alpha = 0.55f)
+                canvas.drawRawPoints(PointMode.Points, vectorDots.borderPoints, dotPaint)
+                return@Canvas
             }
-            // Dots keep their size and spacing on screen at every zoom; each looks up the land mask at its position.
-            val step = size.width / WorldDots.COLS
+            // fallback: each dot looks up the coarse 1.5 degree land mask at its position
+            val step = baseStep
             val radius = step * 0.30f
             val cellDegrees = 360.0 / WorldDots.COLS
-            val color = dotColor.copy(alpha = 0.22f * (1f - detail))
-            if (detail >= 1f) return@Canvas
+            val color = dotColor.copy(alpha = 0.22f)
             val columns = (size.width / step).toInt()
             val rows = (size.height / step).toInt()
             for (row in 0 until rows) {

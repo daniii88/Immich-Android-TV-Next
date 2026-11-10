@@ -34,8 +34,8 @@ data class MapViewport(val lonMin: Double, val lonMax: Double, val latTop: Doubl
         /** The smallest view, so a single city is not zoomed into a blur of dots. */
         const val MIN_WIDTH_DEGREES = 10.0
 
-        /** Bubbles closer than this fraction of the map width would touch (a bubble is about 7 % of the map wide). */
-        const val CLUSTER_RADIUS_FRACTION = 0.06
+        /** Bubbles closer than this fraction of the map width would touch (a bubble with its ring is up to 8 % of the map wide). */
+        const val CLUSTER_RADIUS_FRACTION = 0.08
 
         /** A view of the given width centred on a position, moved into the world if it would stick out. */
         fun around(lat: Double, lon: Double, width: Double): MapViewport {
