@@ -2,7 +2,6 @@ package nl.giejay.android.tv.immich.assets
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -11,7 +10,6 @@ import arrow.core.getOrElse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.album.AlbumDetailsFragmentDirections
 import nl.giejay.android.tv.immich.api.MAX_SEARCH_PAGE_SIZE
 import nl.giejay.android.tv.immich.api.model.Asset
@@ -44,7 +42,6 @@ import nl.giejay.android.tv.immich.shared.prefs.SLIDER_SHOW_DATE_TOP_LEFT
 import nl.giejay.android.tv.immich.shared.prefs.SLIDER_ZOOM_EFFECT
 import nl.giejay.android.tv.immich.shared.prefs.SLIDER_ZOOM_SCROLL_PANORAMAS
 import nl.giejay.android.tv.immich.shared.util.Utils.pmap
-import nl.giejay.android.tv.immich.shared.util.buildSliderConfiguration
 import nl.giejay.android.tv.immich.shared.util.toCard
 import nl.giejay.android.tv.immich.shared.util.toSliderItems
 import nl.giejay.mediaslider.config.MediaSliderConfiguration
@@ -139,11 +136,6 @@ abstract class GenericAssetFragment : VerticalCardGridFragment<Asset>() {
      * provide immediate visual feedback via a loading spinner.
      */
     override fun onItemClicked(card: Card) {
-        val stack = assets.firstOrNull { it.id == card.id }?.stack
-        if (stack != null && stack.assetCount > 1) {
-            openStack(stack.id)
-            return
-        }
         progressBar?.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.Default) {
             val toSliderItems = assets.toSliderItems(
@@ -188,34 +180,6 @@ abstract class GenericAssetFragment : VerticalCardGridFragment<Asset>() {
                 )
                 sliderViewModel.configuration = config
                 findNavController().navigate(AlbumDetailsFragmentDirections.actionToPhotoSlider())
-            }
-        }
-    }
-
-    /** A stack opens as a series of its own in the viewer, the primary asset first; there is no paging beyond it. */
-    private fun openStack(stackId: String) {
-        progressBar?.visibility = View.VISIBLE
-        lifecycleScope.launch(Dispatchers.IO) {
-            val result = apiClient.getStack(stackId)
-            withContext(Dispatchers.Main) {
-                if (!isAdded) return@withContext
-                progressBar?.visibility = View.GONE
-                result.fold(
-                    { Toast.makeText(requireContext(), R.string.no_items_to_play, Toast.LENGTH_SHORT).show() },
-                    { stack ->
-                        // a member hidden from the grid (exclusion tag, excluded album) stays hidden in the series
-                        val members = withoutExcluded(stack.assets)
-                        if (members.isEmpty()) {
-                            Toast.makeText(requireContext(), R.string.no_items_to_play, Toast.LENGTH_SHORT).show()
-                            return@fold
-                        }
-                        // the members of a stack are near-identical shots, pairing portraits would pair copies of one photo
-                        sliderViewModel.configuration = buildSliderConfiguration(
-                            members.toSliderItems(keepOrder = true, mergePortrait = false)
-                        )
-                        findNavController().navigate(AlbumDetailsFragmentDirections.actionToPhotoSlider())
-                    }
-                )
             }
         }
     }

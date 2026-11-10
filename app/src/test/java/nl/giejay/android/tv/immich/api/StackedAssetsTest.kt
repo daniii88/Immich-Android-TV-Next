@@ -8,37 +8,11 @@ import nl.giejay.android.tv.immich.api.model.toTimelineAssets
 import org.junit.Test
 
 class StackedAssetsTest {
-    private fun request(albumIds: List<String>) = buildListAssetsSearchRequest(
-        page = 1, pageCount = 30, albumIds = albumIds, order = "desc",
-        type = null, personIds = emptyList(), endDate = null, fromDate = null
-    )
-
     @Test
-    fun `a stack shows as one entry outside of albums`() {
-        assertThat(request(emptyList()).withStacked).isTrue()
-    }
-
-    @Test
-    fun `an album keeps listing every member of a stack`() {
-        assertThat(request(listOf("album")).withStacked).isNull()
-    }
-
-    @Test
-    fun `stack and live photo fields are read from the asset json`() {
-        val asset = Gson().fromJson(
-            """{"id":"a","type":"IMAGE","stack":{"id":"s","assetCount":3,"primaryAssetId":"a"},"livePhotoVideoId":"v"}""",
-            Asset::class.java
-        )
-        assertThat(asset.stack?.assetCount).isEqualTo(3)
-        assertThat(asset.stack?.id).isEqualTo("s")
+    fun `the live photo video is read from the asset json`() {
+        val asset = Gson().fromJson("""{"id":"a","type":"IMAGE","livePhotoVideoId":"v"}""", Asset::class.java)
         assertThat(asset.livePhotoVideoId).isEqualTo("v")
-    }
-
-    @Test
-    fun `assets without them have neither`() {
-        val asset = Gson().fromJson("""{"id":"a","type":"IMAGE"}""", Asset::class.java)
-        assertThat(asset.stack).isNull()
-        assertThat(asset.livePhotoVideoId).isNull()
+        assertThat(Gson().fromJson("""{"id":"a","type":"IMAGE"}""", Asset::class.java).livePhotoVideoId).isNull()
     }
 
     @Test

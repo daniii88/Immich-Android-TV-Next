@@ -149,6 +149,5 @@ fun Asset.toCard(): Card {
         this.id,
         ApiUtil.getThumbnailUrl(this.id, "thumbnail"),
         ApiUtil.getThumbnailUrl(this.id, "preview"),
-        stackCount = this.stack?.assetCount ?: 0,
         isLivePhoto = this.livePhotoVideoId != null)
 }

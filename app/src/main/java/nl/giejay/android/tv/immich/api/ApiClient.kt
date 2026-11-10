@@ -101,9 +101,7 @@ internal fun buildListAssetsSearchRequest(
     // "timeline" reproduces pre-v3 default for normal browsing; album-scoped search
     // omits it so archived-in-album assets keep showing (VIS-02)
     // an explicit visibility (the archive) wins over the browsing default
-    visibility = visibility ?: if (albumIds.isEmpty()) "timeline" else null,
-    // like the web client outside of albums: a stack is one entry with its count, opened as a series
-    withStacked = if (albumIds.isEmpty()) true else null
+    visibility = visibility ?: if (albumIds.isEmpty()) "timeline" else null
 )
 
 // internal so app/src/test can call it directly without instantiating ApiClient/Retrofit.

@@ -29,13 +29,6 @@ data class Tag(
     val value: String
 )
 
-/** The stack an asset belongs to (shown on its primary asset): [assetCount] photos taken as a series or burst. */
-data class AssetStack(
-    val id: String,
-    val assetCount: Int,
-    val primaryAssetId: String? = null
-)
-
 /** GET stacks/{id}: the primary asset and all the assets of the stack. */
 data class Stack(
     val id: String,
@@ -56,8 +49,6 @@ data class Asset(
     val originalPath: String?,
     val originalFileName: String?,
     val isFavorite: Boolean = false,
-    /** Only sent for a search with `withStacked`. */
-    val stack: AssetStack? = null,
     /** The video of a live photo (the photo itself is the still). */
     val livePhotoVideoId: String? = null
 )
