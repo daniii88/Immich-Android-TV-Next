@@ -33,8 +33,8 @@ enum class AlbumsOrder(val sort: Comparator<Album>, private val titleRes: Int) :
     /** Date of the newest photo in the album (capture date). Was "Last updated". */
     NEWEST_PHOTOS(byDate(true) { it.endDate }, R.string.albums_order_newest_photos),
 
-    /** Date of the newest photo, oldest album first. Was "Least updated". */
-    OLDEST_PHOTOS(byDate(false) { it.endDate }, R.string.albums_order_oldest_photos),
+    /** Date of the oldest photo, oldest first (an album reaching far back sorts before one that only spans recent years). Was "Least updated". */
+    OLDEST_PHOTOS(byDate(false) { it.startDate }, R.string.albums_order_oldest_photos),
 
     /** Album changed on the server (photos added, renamed, ...). */
     RECENTLY_MODIFIED(byDate(true) { it.updatedAt }, R.string.albums_order_recently_modified),

@@ -6,8 +6,8 @@ import org.junit.Test
 import java.util.Date
 
 class AlbumsOrderTest {
-    private fun album(name: String, updated: Long = 0, end: Long? = null, created: Long? = null, count: Int = 0) =
-        Album(name, "", name, null, Date(updated), end?.let { Date(it) }, count, createdAt = created?.let { Date(it) })
+    private fun album(name: String, updated: Long = 0, end: Long? = null, created: Long? = null, count: Int = 0, start: Long? = end?.let { it - 5 }) =
+        Album(name, "", name, null, Date(updated), end?.let { Date(it) }, count, startDate = start?.let { Date(it) }, createdAt = created?.let { Date(it) })
 
     private val a = album("beta", updated = 3, end = 10, created = 1, count = 5)
     private val b = album("Alpha", updated = 1, end = 30, created = 3, count = 9)
@@ -24,6 +24,17 @@ class AlbumsOrderTest {
     @Test fun photoDatesKeepAlbumsWithoutDateLast() {
         assertThat(names(AlbumsOrder.NEWEST_PHOTOS)).containsExactly("Alpha", "beta", "gamma").inOrder()
         assertThat(names(AlbumsOrder.OLDEST_PHOTOS)).containsExactly("beta", "Alpha", "gamma").inOrder()
+    }
+
+    @Test fun oldestPhotosUsesTheStartDateOfTheAlbum() {
+        // an album spanning a long time contains the oldest photo, although its newest photo is the newest too
+        val long = Album("long", "", "long", null, Date(0), Date(50), 1, startDate = Date(1))
+        val short = Album("short", "", "short", null, Date(0), Date(30), 1, startDate = Date(20))
+        val noDate = Album("none", "", "none", null, Date(0), null, 0)
+        assertThat(listOf(short, noDate, long).sortedWith(AlbumsOrder.OLDEST_PHOTOS.sort).map { it.albumName })
+            .containsExactly("long", "short", "none").inOrder()
+        assertThat(listOf(short, noDate, long).sortedWith(AlbumsOrder.NEWEST_PHOTOS.sort).map { it.albumName })
+            .containsExactly("long", "short", "none").inOrder()
     }
 
     @Test fun modifiedAndCreated() {
