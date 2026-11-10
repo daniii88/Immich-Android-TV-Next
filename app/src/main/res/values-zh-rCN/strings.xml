@@ -319,6 +319,11 @@
     <string name="info_albums">相册</string>
     <string name="live_photo_play">播放实况照片</string>
     <string name="live_photo_failed">无法播放实况照片</string>
+    <string name="map">地图</string>
+    <string name="map_empty">还没有带位置的照片</string>
+    <plurals name="map_photos">
+        <item quantity="other">%d 张照片</item>
+    </plurals>
     <string name="albums_filter">显示相册</string>
     <string name="albums_filter_text">显示哪些相册：自己的、共享的或全部</string>
     <string name="albums_filter_mine">我的相册</string>

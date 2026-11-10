@@ -9,6 +9,7 @@ import nl.giejay.android.tv.immich.api.model.Album
 import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.AssetResponse
 import nl.giejay.android.tv.immich.api.model.Folder
+import nl.giejay.android.tv.immich.api.model.MapMarker
 import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.model.Partner
 import nl.giejay.android.tv.immich.api.model.Person
@@ -448,6 +449,9 @@ class ApiClient(private val config: ApiClientConfig) {
             service.getAssetsForPath(folder)
         }.map { it.filter(excludeByTag()) }
     }
+
+    /** All photos with a location, for the map page. */
+    suspend fun getMapMarkers(): Either<String, List<MapMarker>> = executeAPICall(200) { service.getMapMarkers() }
 
     /** The assets of a stack, the primary asset first. */
     suspend fun getStack(id: String): Either<String, Stack> = executeAPICall(200) { service.getStack(id) }.map { stack ->

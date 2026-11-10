@@ -2,6 +2,7 @@ package nl.giejay.android.tv.immich.api.service
 
 import nl.giejay.android.tv.immich.api.model.Album
 import nl.giejay.android.tv.immich.api.model.Asset
+import nl.giejay.android.tv.immich.api.model.MapMarker
 import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.model.Partner
 import nl.giejay.android.tv.immich.api.model.Stack
@@ -41,6 +42,10 @@ interface ApiService {
 
     @GET("albums/{id}")
     suspend fun getAlbum(@Path("id") id: String): Response<Album>
+
+    /** Every photo with a location. */
+    @GET("map/markers")
+    suspend fun getMapMarkers(): Response<List<MapMarker>>
 
     @GET("stacks/{id}")
     suspend fun getStack(@Path("id") id: String): Response<Stack>

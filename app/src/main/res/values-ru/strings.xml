@@ -313,6 +313,14 @@
     <string name="info_albums">Альбомы</string>
     <string name="live_photo_play">Воспроизвести живое фото</string>
     <string name="live_photo_failed">Не удалось воспроизвести живое фото</string>
+    <string name="map">Карта</string>
+    <string name="map_empty">Пока нет фото с местоположением</string>
+    <plurals name="map_photos">
+        <item quantity="one">%d фото</item>
+        <item quantity="few">%d фото</item>
+        <item quantity="many">%d фото</item>
+        <item quantity="other">%d фото</item>
+    </plurals>
     <string name="albums_filter">Показывать альбомы</string>
     <string name="albums_filter_text">Какие альбомы показывать: свои, общие или все</string>
     <string name="albums_filter_mine">Мои альбомы</string>

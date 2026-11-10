@@ -305,6 +305,12 @@
     <string name="info_albums">Alben</string>
     <string name="live_photo_play">Live-Foto abspielen</string>
     <string name="live_photo_failed">Live-Foto konnte nicht abgespielt werden</string>
+    <string name="map">Karte</string>
+    <string name="map_empty">Noch keine Fotos mit Ortsangabe</string>
+    <plurals name="map_photos">
+        <item quantity="one">%d Foto</item>
+        <item quantity="other">%d Fotos</item>
+    </plurals>
     <string name="albums_filter">Alben anzeigen</string>
     <string name="albums_filter_text">Welche Alben angezeigt werden: eigene, geteilte oder alle</string>
     <string name="albums_filter_mine">Meine Alben</string>

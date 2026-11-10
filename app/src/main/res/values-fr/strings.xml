@@ -311,6 +311,12 @@
     <string name="info_albums">Albums</string>
     <string name="live_photo_play">Lire la photo animée</string>
     <string name="live_photo_failed">Impossible de lire la photo animée</string>
+    <string name="map">Carte</string>
+    <string name="map_empty">Aucune photo géolocalisée pour l’instant</string>
+    <plurals name="map_photos">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
     <string name="albums_filter">Afficher les albums</string>
     <string name="albums_filter_text">Quels albums afficher : les vôtres, partagés ou tous</string>
     <string name="albums_filter_mine">Mes albums</string>
