@@ -3,6 +3,7 @@ package nl.giejay.android.tv.immich.slider
 import android.os.Handler
 import android.view.KeyEvent
 import android.view.View
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -41,6 +43,7 @@ import nl.giejay.mediaslider.plugin.SliderKeyEventState
 import nl.giejay.mediaslider.plugin.SliderViewPlugin
 import nl.giejay.mediaslider.plugin.SliderViewPluginContext
 import nl.giejay.mediaslider.view.MediaSliderController
+import timber.log.Timber
 
 class LivePhotoState {
     /** The url of the motion video that is playing over the still; null when nothing plays. */
@@ -171,6 +174,13 @@ private fun LivePhotoPlayer(url: String, onEnded: () -> Unit) {
                 addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_ENDED) onEnded()
+                    }
+
+                    // a video that cannot be loaded or decoded never ends: take the overlay down, the still is still there
+                    override fun onPlayerError(error: PlaybackException) {
+                        Timber.w(error, "Live photo video failed")
+                        Toast.makeText(context, R.string.live_photo_failed, Toast.LENGTH_SHORT).show()
+                        onEnded()
                     }
                 })
             }

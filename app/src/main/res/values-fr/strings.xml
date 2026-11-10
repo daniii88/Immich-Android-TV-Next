@@ -310,6 +310,7 @@
     <string name="info_file_size">Taille du fichier</string>
     <string name="info_albums">Albums</string>
     <string name="live_photo_play">Lire la photo animée</string>
+    <string name="live_photo_failed">Impossible de lire la photo animée</string>
     <string name="albums_filter">Afficher les albums</string>
     <string name="albums_filter_text">Quels albums afficher : les vôtres, partagés ou tous</string>
     <string name="albums_filter_mine">Mes albums</string>
