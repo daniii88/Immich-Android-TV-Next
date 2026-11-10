@@ -315,6 +315,7 @@
     <string name="live_photo_failed">Не удалось воспроизвести живое фото</string>
     <string name="map">Карта</string>
     <string name="map_empty">Пока нет фото с местоположением</string>
+    <string name="map_zoom_out_hint">Назад: уменьшить</string>
     <plurals name="map_photos">
         <item quantity="one">%d фото</item>
         <item quantity="few">%d фото</item>

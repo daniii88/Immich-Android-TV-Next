@@ -63,4 +63,21 @@ class MapPlacesTest {
         )
         assertThat(clusters.map { it.label }).containsExactly("Sydney", "Bern").inOrder()
     }
+
+    @Test
+    fun `places are listed as a walk through the neighbourhood, starting at the biggest`() {
+        // west to east along a line: the biggest is in the middle, then the nearest not yet listed each time
+        val a = PlaceCity("A", "X", 1, 0.0, 0.0, "a")
+        val b = PlaceCity("B", "X", 5, 0.0, 1.0, "b")
+        val c = PlaceCity("C", "X", 2, 0.0, 2.0, "c")
+        val d = PlaceCity("D", "X", 3, 0.0, 10.0, "d")
+        assertThat(orderByProximity(listOf(a, c, d, b)).map { it.city }).containsExactly("B", "C", "A", "D").inOrder()
+    }
+
+    @Test
+    fun `fewer than three places keep their order`() {
+        val a = PlaceCity("A", "X", 1, 0.0, 0.0, "a")
+        val b = PlaceCity("B", "X", 5, 0.0, 1.0, "b")
+        assertThat(orderByProximity(listOf(a, b))).containsExactly(a, b).inOrder()
+    }
 }

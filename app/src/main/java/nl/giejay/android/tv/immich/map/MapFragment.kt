@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,11 +24,21 @@ import nl.giejay.android.tv.immich.places.PlacesFragment
 import nl.giejay.android.tv.immich.ui.immichComposeView
 import nl.giejay.android.tv.immich.ui.map.MapScreen
 import nl.giejay.android.tv.immich.ui.map.MapUiState
+import nl.giejay.android.tv.immich.ui.map.MapZoomState
 import timber.log.Timber
 
 /** The places of the library on a world map; a place opens the photos taken there (like the Places page). */
 class MapFragment : Fragment() {
     private var state by mutableStateOf<MapUiState>(MapUiState.Loading)
+    private val zoom = MapZoomState()
+
+    // Back zooms out first; at the world view it is not for the map (the home screen takes it)
+    private val zoomBack = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            zoom.zoomOut()
+            isEnabled = zoom.isZoomed
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         Timber.i("Loading ${javaClass.simpleName}")
@@ -34,19 +46,21 @@ class MapFragment : Fragment() {
             val landDots = remember {
                 resources.openRawResource(R.raw.world_land_dots).use { WorldDots.decode(it.readBytes()) }
             }
-            MapScreen(state, landDots, onOpenCity = ::openCity)
+            LaunchedEffect(zoom.changes) { zoomBack.isEnabled = zoom.isZoomed }
+            MapScreen(state, landDots, zoom, onOpenCity = ::openCity)
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, zoomBack)
         viewLifecycleOwner.lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { ApiClient.getClient(ApiClientConfig.fromPrefs()).getMapMarkers() }
             state = result.fold(
                 { MapUiState.Failed(it) },
                 { markers ->
-                    val clusters = clusterCities(groupCities(markers))
-                    if (clusters.isEmpty()) MapUiState.Empty else MapUiState.Ready(clusters)
+                    val cities = groupCities(markers)
+                    if (cities.isEmpty()) MapUiState.Empty else MapUiState.Ready(cities)
                 },
             )
         }

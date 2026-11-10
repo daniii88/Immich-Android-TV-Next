@@ -362,6 +362,7 @@
     <string name="live_photo_failed">Could not play the live photo</string>
     <string name="map">Map</string>
     <string name="map_empty">No photos with a location yet</string>
+    <string name="map_zoom_out_hint">Back: zoom out</string>
     <plurals name="map_photos">
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>

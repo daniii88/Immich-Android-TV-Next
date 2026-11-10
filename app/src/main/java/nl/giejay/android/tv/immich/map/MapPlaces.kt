@@ -70,9 +70,26 @@ private fun centre(group: List<PlaceCity>): Pair<Double, Double> {
 }
 
 /** Rough distance in degrees: longitude differences shrink towards the poles, and wrap around the date line. */
-private fun distanceDegrees(a: Pair<Double, Double>, b: Pair<Double, Double>): Double {
+internal fun distanceDegrees(a: Pair<Double, Double>, b: Pair<Double, Double>): Double {
     val dLat = a.first - b.first
     val rawLon = abs(a.second - b.second)
     val dLon = minOf(rawLon, 360.0 - rawLon) * cos(Math.toRadians((a.first + b.first) / 2))
     return hypot(dLat, dLon)
+}
+
+/**
+ * The places in a walk through the neighbourhood: it starts at the biggest place and goes on to the closest place not
+ * yet listed, so places that lie near each other stand next to each other (not alphabetically, not by size).
+ */
+fun orderByProximity(cities: List<PlaceCity>): List<PlaceCity> {
+    if (cities.size < 3) return cities
+    val rest = cities.sortedByDescending { it.count }.toMutableList()
+    val ordered = mutableListOf(rest.removeAt(0))
+    while (rest.isNotEmpty()) {
+        val last = ordered.last()
+        val next = rest.minBy { distanceDegrees(last.lat to last.lon, it.lat to it.lon) }
+        rest.remove(next)
+        ordered += next
+    }
+    return ordered
 }

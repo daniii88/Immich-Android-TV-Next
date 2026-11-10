@@ -321,6 +321,7 @@
     <string name="live_photo_failed">无法播放实况照片</string>
     <string name="map">地图</string>
     <string name="map_empty">还没有带位置的照片</string>
+    <string name="map_zoom_out_hint">返回：缩小</string>
     <plurals name="map_photos">
         <item quantity="other">%d 张照片</item>
     </plurals>
