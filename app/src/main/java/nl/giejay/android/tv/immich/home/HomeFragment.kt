@@ -24,6 +24,7 @@ import nl.giejay.android.tv.immich.assets.RandomAssetsFragment
 import nl.giejay.android.tv.immich.assets.RecentAssetsFragment
 import nl.giejay.android.tv.immich.assets.SimilarTimeAssetsFragment
 import nl.giejay.android.tv.immich.assets.ArchiveFragment
+import nl.giejay.android.tv.immich.assets.FavoritesFragment
 import nl.giejay.android.tv.immich.assets.VideosFragment
 import nl.giejay.android.tv.immich.people.PeopleFragment
 import nl.giejay.android.tv.immich.places.PlacesFragment
@@ -61,6 +62,7 @@ class HomeFragment : Fragment(), HomeNavHost {
                 AlbumFragment().apply { arguments = bundleOf("selectionMode" to false) }
             },
             Page(getString(R.string.photos), ImmichIcons.Photos) { AllAssetFragment() },
+            Page(getString(R.string.favorites), ImmichIcons.Favorites) { FavoritesFragment() },
             Page(getString(R.string.videos), ImmichIcons.Videos) { VideosFragment() },
             Page(getString(R.string.random), ImmichIcons.Random) { RandomAssetsFragment() },
             Page(getString(R.string.people), ImmichIcons.People) { PeopleFragment() },
