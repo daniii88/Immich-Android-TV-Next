@@ -32,7 +32,7 @@ internal class LandDots(vectors: MapVectors) {
     var borderPoints: FloatArray = FloatArray(0)
         private set
 
-    private data class DotsKey(val view: MapViewport, val cols: Int, val rows: Int, val width: Float, val height: Float)
+    private data class DotsKey(val view: MapViewport, val cols: Int, val rows: Int, val step: Int, val dot: Int)
 
     private val landPaint = Paint().apply { isAntiAlias = false; style = Paint.Style.FILL; color = 0xFF000000.toInt() }
     private val borderPaint = Paint().apply {
@@ -43,9 +43,12 @@ internal class LandDots(vectors: MapVectors) {
         color = 0xFF000000.toInt()
     }
 
-    /** Brings the dots up to date for [view], a grid of [cols] x [rows] dots on a map area of the given size in pixels. */
-    fun update(view: MapViewport, cols: Int, rows: Int, width: Float, height: Float) {
-        val wanted = DotsKey(view, cols, rows, width, height)
+    /**
+     * Brings the dots up to date for [view]: a grid of [cols] x [rows] dots, [step] pixels apart, each a square of
+     * [dot] pixels. Whole pixels only: dots on a fractional grid beat against the pixel grid and show as stripes.
+     */
+    fun update(view: MapViewport, cols: Int, rows: Int, step: Int, dot: Int) {
+        val wanted = DotsKey(view, cols, rows, step, dot)
         if (wanted == key || cols < 1 || rows < 1) return
         key = wanted
         val bmp = bitmap?.takeIf { it.width == cols && it.height == rows }
@@ -56,14 +59,14 @@ internal class LandDots(vectors: MapVectors) {
         val canvas = canvas!!
         val scaleX = cols / view.width.toFloat()
         val scaleY = rows / view.height.toFloat()
-        landPoints = raster(bmp, canvas, land, landPaint, scaleX, scaleY, view, width / cols, height / rows)
+        landPoints = raster(bmp, canvas, land, landPaint, scaleX, scaleY, view, step, dot)
         borderPaint.strokeWidth = 1.1f / scaleX // about one dot wide
-        borderPoints = raster(bmp, canvas, borders, borderPaint, scaleX, scaleY, view, width / cols, height / rows)
+        borderPoints = raster(bmp, canvas, borders, borderPaint, scaleX, scaleY, view, step, dot)
     }
 
     private fun raster(
         bmp: Bitmap, canvas: Canvas, path: Path, paint: Paint,
-        scaleX: Float, scaleY: Float, view: MapViewport, stepX: Float, stepY: Float,
+        scaleX: Float, scaleY: Float, view: MapViewport, step: Int, dot: Int,
     ): FloatArray {
         bmp.eraseColor(0)
         canvas.save()
@@ -78,10 +81,12 @@ internal class LandDots(vectors: MapVectors) {
         for (b in pixels) if (b.toInt() and 0xFF >= 128) lit++
         val points = FloatArray(lit * 2)
         var next = 0
+        // the centre of a dot-sized square sitting in the middle of its cell, on whole pixels
+        val inset = (step - dot) / 2 + dot / 2f
         for (i in pixels.indices) {
             if (pixels[i].toInt() and 0xFF >= 128) {
-                points[next++] = (i % bmp.width + 0.5f) * stepX
-                points[next++] = (i / bmp.width + 0.5f) * stepY
+                points[next++] = (i % bmp.width) * step + inset
+                points[next++] = (i / bmp.width) * step + inset
             }
         }
         return points
@@ -92,4 +97,10 @@ internal class LandDots(vectors: MapVectors) {
 internal fun dotStep(base: Float, viewWidthDegrees: Double): Float {
     val detail = ((150.0 - viewWidthDegrees) / 90.0).coerceIn(0.0, 1.0).toFloat()
     return base * (1f - 0.4f * detail)
+}
+
+/** The spacing in whole pixels (at least 3) and the side of the square dot (2 px up to a spacing of 4, else 3). */
+internal fun dotPixels(step: Float): Pair<Int, Int> {
+    val whole = Math.round(step).coerceAtLeast(3)
+    return whole to if (whole <= 4) 2 else 3
 }

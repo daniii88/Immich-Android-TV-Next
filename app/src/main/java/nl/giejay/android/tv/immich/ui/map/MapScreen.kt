@@ -295,17 +295,17 @@ private fun WorldMap(
         // with the vectors loaded, the dots come from the real coastlines at every zoom (finer when zoomed in); until
         // then, and as a fallback, from the coarse mask of the world view
         val landDotsFromVectors = remember(vectors) { vectors?.let { LandDots(it) } }
-        val dotPaint = remember { Paint().apply { strokeCap = StrokeCap.Round; isAntiAlias = true } }
+        val dotPaint = remember { Paint().apply { strokeCap = StrokeCap.Square; isAntiAlias = false } }
         Canvas(Modifier.fillMaxSize()) {
             val baseStep = size.width / WorldDots.COLS
             val vectorDots = landDotsFromVectors
             if (vectorDots != null) {
-                val step = dotStep(baseStep, shown.width)
-                val cols = (size.width / step).toInt()
-                val rows = (size.height / step).toInt()
-                vectorDots.update(shown, cols, rows, size.width, size.height)
+                val (step, dot) = dotPixels(dotStep(baseStep, shown.width))
+                val cols = size.width.toInt() / step
+                val rows = size.height.toInt() / step
+                vectorDots.update(shown, cols, rows, step, dot)
                 val canvas = drawContext.canvas
-                dotPaint.strokeWidth = step * 0.6f
+                dotPaint.strokeWidth = dot.toFloat()
                 dotPaint.color = dotColor.copy(alpha = 0.26f)
                 canvas.drawRawPoints(PointMode.Points, vectorDots.landPoints, dotPaint)
                 dotPaint.color = dotColor.copy(alpha = 0.55f)
