@@ -3,6 +3,7 @@ package nl.giejay.android.tv.immich.api.service
 import nl.giejay.android.tv.immich.api.model.Album
 import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.Memory
+import nl.giejay.android.tv.immich.api.model.Partner
 import nl.giejay.android.tv.immich.api.model.PeopleResponse
 import nl.giejay.android.tv.immich.api.model.Person
 import nl.giejay.android.tv.immich.api.model.TagInfo
@@ -35,7 +36,7 @@ interface ApiService {
     suspend fun randomAssets(@Body searchRequest: SearchRequest): Response<List<Asset>>
 
     @GET("albums")
-    suspend fun listAlbums(@Query("assetId") assetId: String? = null): Response<List<Album>>
+    suspend fun listAlbums(@Query("assetId") assetId: String? = null, @Query("shared") shared: Boolean? = null): Response<List<Album>>
 
     @GET("albums/{id}")
     suspend fun getAlbum(@Path("id") id: String): Response<Album>
@@ -54,7 +55,8 @@ interface ApiService {
     suspend fun getTimeBuckets(
         @Query("order") order: String = "desc",
         @Query("visibility") visibility: String? = "timeline",
-        @Query("withPartners") withPartners: Boolean? = null
+        @Query("withPartners") withPartners: Boolean? = null,
+        @Query("userId") userId: String? = null
     ): Response<List<TimeBucketSummary>>
 
     @GET("timeline/bucket")
@@ -62,8 +64,13 @@ interface ApiService {
         @Query("timeBucket") timeBucket: String,
         @Query("order") order: String = "desc",
         @Query("visibility") visibility: String? = "timeline",
-        @Query("withPartners") withPartners: Boolean? = null
+        @Query("withPartners") withPartners: Boolean? = null,
+        @Query("userId") userId: String? = null
     ): Response<TimeBucketAssetsResponse>
+
+    /** The users that share their library with this user ("shared-with") or the other way around ("shared-by"). */
+    @GET("partners")
+    suspend fun listPartners(@Query("direction") direction: String = "shared-with"): Response<List<Partner>>
 
     @GET("memories")
     suspend fun getMemories(@Query("for") forDate: String? = null): Response<List<Memory>>

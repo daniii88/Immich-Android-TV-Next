@@ -380,6 +380,19 @@ data object ALBUMS_SORTING : EnumByTitlePref<AlbumsOrder>(AlbumsOrder.NEWEST_PHO
     }
 }
 
+data object ALBUMS_FILTER : EnumByTitlePref<AlbumsFilter>(AlbumsFilter.MINE,
+    ImmichApplication.appContext!!.getString(R.string.albums_filter),
+    ImmichApplication.appContext!!.getString(R.string.albums_filter_text)) {
+
+    override fun fromPrefValue(prefValue: String): AlbumsFilter {
+        return AlbumsFilter.valueOfSafe(prefValue, defaultValue)
+    }
+
+    override fun getEnumEntries(): Array<AlbumsFilter> {
+        return AlbumsFilter.entries.toTypedArray()
+    }
+}
+
 data object PHOTOS_SORTING : EnumByTitlePref<PhotosOrder>(PhotosOrder.OLDEST_NEWEST,
     ImmichApplication.appContext!!.getString(R.string.photos_in_albums),
     ImmichApplication.appContext!!.getString(R.string.photos_in_albums_desc_inside)) {
@@ -508,6 +521,7 @@ data object HIDDEN_HOME_ITEMS : StringSetPref(
         ImmichApplication.appContext!!.getString(R.string.seasonal),
         ImmichApplication.appContext!!.getString(R.string.tags),
         ImmichApplication.appContext!!.getString(R.string.archive),
+        ImmichApplication.appContext!!.getString(R.string.partners),
     ), "", "")
 
 /**
@@ -545,6 +559,7 @@ data object HOME_PAGE_FOLDERS : HomePageVisiblePref(R.string.folders)
 data object HOME_PAGE_PLACES : HomePageVisiblePref(R.string.places)
 data object HOME_PAGE_TAGS : HomePageVisiblePref(R.string.tags)
 data object HOME_PAGE_ARCHIVE : HomePageVisiblePref(R.string.archive)
+data object HOME_PAGE_PARTNERS : HomePageVisiblePref(R.string.partners)
 
 data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getString(R.string.home_pages), "view_pages",
     listOf(PrefCategory("", listOf(
@@ -562,7 +577,8 @@ data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getS
         HOME_PAGE_FOLDERS,
         HOME_PAGE_PLACES,
         HOME_PAGE_TAGS,
-        HOME_PAGE_ARCHIVE
+        HOME_PAGE_ARCHIVE,
+        HOME_PAGE_PARTNERS
     )))
 )
 
@@ -722,6 +738,7 @@ data object ViewOrderingPrefScreen : PrefScreen(ImmichApplication.appContext!!.g
         PrefCategory("",
             listOf(
                 ALBUMS_SORTING,
+                ALBUMS_FILTER,
                 PHOTOS_SORTING,
                 ALL_ASSETS_SORTING)
         )

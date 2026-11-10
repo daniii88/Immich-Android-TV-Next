@@ -26,6 +26,7 @@ import nl.giejay.android.tv.immich.assets.SimilarTimeAssetsFragment
 import nl.giejay.android.tv.immich.assets.ArchiveFragment
 import nl.giejay.android.tv.immich.assets.FavoritesFragment
 import nl.giejay.android.tv.immich.memories.MemoriesFragment
+import nl.giejay.android.tv.immich.partners.PartnersFragment
 import nl.giejay.android.tv.immich.assets.VideosFragment
 import nl.giejay.android.tv.immich.people.PeopleFragment
 import nl.giejay.android.tv.immich.places.PlacesFragment
@@ -74,6 +75,7 @@ class HomeFragment : Fragment(), HomeNavHost {
             Page(getString(R.string.places), ImmichIcons.Places) { PlacesFragment() },
             Page(getString(R.string.tags), ImmichIcons.Tags) { TagsFragment() },
             Page(getString(R.string.archive), ImmichIcons.Archive) { ArchiveFragment() },
+            Page(getString(R.string.partners), ImmichIcons.Partners) { PartnersFragment() },
             Page(getString(R.string.edit), ImmichIcons.Edit, separated = true) { GridFragment(hideProgressBar = true) },
             Page(getString(R.string.settings), ImmichIcons.Settings) { SettingsFragment() },
         )

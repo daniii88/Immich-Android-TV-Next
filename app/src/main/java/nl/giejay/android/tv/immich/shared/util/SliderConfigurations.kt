@@ -1,4 +1,4 @@
-package nl.giejay.android.tv.immich.memories
+package nl.giejay.android.tv.immich.shared.util
 
 import nl.giejay.android.tv.immich.shared.prefs.MetaDataScreen
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
@@ -19,16 +19,21 @@ import nl.giejay.android.tv.immich.shared.prefs.SLIDER_ZOOM_SCROLL_PANORAMAS
 import nl.giejay.mediaslider.config.MediaSliderConfiguration
 import nl.giejay.mediaslider.model.MetaDataType
 import nl.giejay.mediaslider.model.SliderItemViewHolder
+import nl.giejay.mediaslider.util.LoadMore
 
-/** Viewer configuration for a memory: starts at the first asset, same settings as the timeline's memory row uses. */
-internal fun buildMemorySliderConfiguration(items: List<SliderItemViewHolder>): MediaSliderConfiguration =
+/** Viewer configuration with the user's slider settings, as the timeline builds it (memories, partner photos). */
+internal fun buildSliderConfiguration(
+    items: List<SliderItemViewHolder>,
+    startIndex: Int = 0,
+    loadMore: LoadMore? = null,
+): MediaSliderConfiguration =
     MediaSliderConfiguration(
-        0,
+        startIndex,
         PreferenceManager.get(SLIDER_INTERVAL),
         PreferenceManager.get(SLIDER_ONLY_USE_THUMBNAILS),
         isVideoSoundEnable = true,
         items,
-        null,
+        loadMore,
         animationSpeedMillis = PreferenceManager.get(SLIDER_ANIMATION_SPEED),
         maxCutOffHeight = PreferenceManager.get(SLIDER_MAX_CUT_OFF_HEIGHT),
         maxCutOffWidth = PreferenceManager.get(SLIDER_MAX_CUT_OFF_WIDTH),

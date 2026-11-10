@@ -13,7 +13,9 @@ import nl.giejay.android.tv.immich.card.Card
 import nl.giejay.android.tv.immich.home.HomeFragmentDirections
 import nl.giejay.android.tv.immich.homescreenchannels.HomeScreenChannelManager
 import nl.giejay.android.tv.immich.shared.fragment.VerticalCardGridFragment
+import nl.giejay.android.tv.immich.shared.prefs.ALBUMS_FILTER
 import nl.giejay.android.tv.immich.shared.prefs.ALBUMS_SORTING
+import nl.giejay.android.tv.immich.shared.prefs.AlbumsFilter
 import nl.giejay.android.tv.immich.shared.prefs.CHANNEL_ALBUMS
 import nl.giejay.android.tv.immich.shared.prefs.EXCLUDE_ASSETS_IN_ALBUM
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
@@ -30,6 +32,7 @@ enum class SelectionType {
 
 class AlbumFragment : VerticalCardGridFragment<Album>() {
     private lateinit var selectionTypeKey: StringSetPref
+    private var currentFilter: AlbumsFilter = PreferenceManager.get(ALBUMS_FILTER)
     private val selectionType: SelectionType
         get() = arguments?.getString("selectionType")?.let { SelectionType.valueOf(it) } ?: SelectionType.SET_SCREENSAVER
 
@@ -50,6 +53,13 @@ class AlbumFragment : VerticalCardGridFragment<Album>() {
         }
         PreferenceManager.subscribe(ALBUMS_SORTING) {
             resortItems()
+        }
+        PreferenceManager.subscribe(ALBUMS_FILTER) { filter ->
+            if (filter != currentFilter) {
+                currentFilter = filter
+                clearState()
+                fetchInitialItems()
+            }
         }
     }
 
@@ -76,7 +86,7 @@ class AlbumFragment : VerticalCardGridFragment<Album>() {
     ): Either<String, List<Album>> {
         if (page == startPage) {
             // no pagination possible yet!
-            return apiClient.listAlbums()
+            return apiClient.listAlbums(currentFilter)
         }
         return Either.Right(emptyList())
     }

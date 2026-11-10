@@ -347,6 +347,12 @@
     <string name="tags">Tags</string>
     <string name="favorites">Favorites</string>
     <string name="memories">Memories</string>
+    <string name="albums_filter">Show albums</string>
+    <string name="albums_filter_text">Which albums to list: your own, the shared ones or all</string>
+    <string name="albums_filter_mine">My albums</string>
+    <string name="albums_filter_shared">Shared albums</string>
+    <string name="albums_filter_all">All albums</string>
+    <string name="partners">Partners</string>
     <string name="screensaver_only_landscape">Landscape photos only</string>
     <string name="screensaver_only_landscape_desc">Skip portrait photos in the screensaver.</string>
     <string name="screensaver_adb_intro">Could not open the screensaver settings on this device. Enable the screensaver by hand with these steps:</string>

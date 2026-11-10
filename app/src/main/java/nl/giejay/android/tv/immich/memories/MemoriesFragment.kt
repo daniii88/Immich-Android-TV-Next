@@ -11,6 +11,7 @@ import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.util.ApiUtil
 import nl.giejay.android.tv.immich.card.Card
 import nl.giejay.android.tv.immich.shared.fragment.VerticalCardGridFragment
+import nl.giejay.android.tv.immich.shared.util.buildSliderConfiguration
 import nl.giejay.android.tv.immich.shared.util.toSliderItems
 import nl.giejay.android.tv.immich.timeline.MemoriesRowAdapter
 import nl.giejay.mediaslider.viewmodel.MediaSliderViewModel
@@ -50,7 +51,7 @@ class MemoriesFragment : VerticalCardGridFragment<Memory>() {
 
     override fun onItemClicked(card: Card) {
         val memory = assets.firstOrNull { it.id == card.id } ?: return
-        sliderViewModel.configuration = buildMemorySliderConfiguration(
+        sliderViewModel.configuration = buildSliderConfiguration(
             // memory payloads omit EXIF/dimensions, so pairing portraits is unreliable (same as in the timeline)
             memory.assets.toSliderItems(keepOrder = true, mergePortrait = false)
         )

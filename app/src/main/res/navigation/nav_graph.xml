@@ -96,6 +96,18 @@
     </fragment>
 
     <fragment
+        android:id="@+id/partnerAssetsFragment"
+        android:name="nl.giejay.android.tv.immich.partners.PartnerAssetsFragment"
+        android:label="PartnerAssetsFragment">
+        <argument
+            android:name="partnerId"
+            app:argType="string" />
+        <argument
+            android:name="partnerName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
         android:id="@+id/filteredAssetsFragment"
         android:name="nl.giejay.android.tv.immich.places.FilteredAssetsFragment"
         android:label="FilteredAssetsFragment">
@@ -225,6 +237,9 @@
         <action
             android:id="@+id/action_homeFragment_to_personAssetsFragment"
             app:destination="@id/personAssetsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_partnerAssetsFragment"
+            app:destination="@id/partnerAssetsFragment" />
         <action
             android:id="@+id/action_homeFragment_to_filteredAssetsFragment"
             app:destination="@id/filteredAssetsFragment" />
