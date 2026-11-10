@@ -14,9 +14,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import arrow.core.Some
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.giejay.android.tv.immich.R
@@ -63,8 +66,12 @@ class InfoPanelState {
  */
 class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>, SliderKeyEventPlugin {
     private var state: InfoPanelState? = null
-    private var pluginContext: SliderViewPluginContext? = null
     private var loadJob: Job? = null
+
+    // The slider view runs onDestroy when the viewer is paused (Home, an external player) and does not create the
+    // plugin state again on resume, so nothing here may be torn down or cancelled in onDestroy: the plugin keeps its
+    // own scope, state and back handling, which end with the fragment's view lifecycle.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var backDownConsumed = false
 
     /**
@@ -90,15 +97,14 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
     }
 
     override fun createState(context: SliderViewPluginContext, config: MediaSliderConfiguration): InfoPanelState {
-        pluginContext = context
         val panelState = InfoPanelState()
         state = panelState
-        registerBackCallback(context.context)
         return panelState
     }
 
     override fun attachView(rootView: ConstraintLayout, state: InfoPanelState?) {
         val panelState = state ?: return
+        registerBackCallback(rootView)
         val view = createOverlayView(rootView.context) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
                 AnimatedVisibility(
@@ -131,15 +137,11 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
     }
 
     override fun onDestroy(context: SliderViewPluginContext, state: InfoPanelState?) {
-        loadJob?.cancel()
-        backCallback?.remove()
-        backCallback = null
-        this.state = null
-        pluginContext = null
+        // nothing to release on a pause, see the note on [scope]; a running request may finish
     }
 
-    private fun registerBackCallback(context: Context) {
-        var ctx: Context? = context
+    private fun registerBackCallback(rootView: View) {
+        var ctx: Context? = rootView.context
         while (ctx is ContextWrapper && ctx !is ComponentActivity) ctx = ctx.baseContext
         val activity = ctx as? ComponentActivity ?: return
         backCallback?.remove()
@@ -149,8 +151,11 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
                 isEnabled = false
             }
         }
-        // added last, so it is asked first, before the navigation's own back handling
-        activity.onBackPressedDispatcher.addCallback(callback)
+        // added last, so it is asked first, before the navigation's own back handling; with the view's lifecycle owner
+        // it is removed when the viewer goes away and only asked while the viewer is on screen
+        val owner = rootView.findViewTreeLifecycleOwner()
+        if (owner != null) activity.onBackPressedDispatcher.addCallback(owner, callback)
+        else activity.onBackPressedDispatcher.addCallback(callback)
         backCallback = callback
     }
 
@@ -185,11 +190,10 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
 
     private fun load(assetId: String) {
         val panel = state ?: return
-        val context = pluginContext ?: return
         loadJob?.cancel()
         panel.info = null
         panel.scrollState.dispatchRawDelta(-panel.scrollState.value.toFloat())
-        loadJob = context.ioScope.launch(Dispatchers.IO) {
+        loadJob = scope.launch {
             val client = ApiClient.getClient(
                 ApiClientConfig(
                     PreferenceManager.hostName,

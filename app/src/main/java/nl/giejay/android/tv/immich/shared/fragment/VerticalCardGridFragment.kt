@@ -20,6 +20,7 @@ import com.bumptech.glide.request.transition.Transition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.giejay.android.tv.immich.ImmichApplication
@@ -54,6 +55,7 @@ abstract class VerticalCardGridFragment<ITEM> : GridFragment() {
     protected var currentPage: Int = startPage
     protected var allPagesLoaded: Boolean = false
     private var currentLoadingJob: Job? = null
+    private var initialLoadJob: Job? = null
     protected val selectionMode: Boolean
         get() = arguments?.getBoolean("selectionMode", false) ?: false
     private var currentSelectedIndex: Int = 0
@@ -142,8 +144,13 @@ abstract class VerticalCardGridFragment<ITEM> : GridFragment() {
     }
 
     protected open fun fetchInitialItems() {
-        ioScope.launch {
-            loadData().fold(
+        // a filter or sorting change starts a new load; the one still running must not fill the list afterwards
+        initialLoadJob?.cancel()
+        initialLoadJob = ioScope.launch {
+            val result = loadData()
+            // cancelled by a newer load: neither its items nor a "cancelled" error belong on screen
+            if (!isActive) return@launch
+            result.fold(
                 { itLeft -> showErrorMessage(itLeft) },
                 { itRight ->
                     val assets = filterItems(itRight)
@@ -177,6 +184,8 @@ abstract class VerticalCardGridFragment<ITEM> : GridFragment() {
     }
 
     protected open fun clearState() {
+        initialLoadJob?.cancel()
+        currentLoadingJob?.cancel()
         currentPage = startPage
         assets = emptyList()
         assetsStillToRender.clear()
