@@ -17,5 +17,11 @@ enum class AlbumsFilter(private val titleRes: Int) : EnumWithTitle {
     }
 }
 
+/**
+ * The albums the server returned for `shared=true`, reduced to the ones that really are shared: servers differ in what
+ * the parameter does (some ignore it and send every album), the `shared` flag of the album is reliable.
+ */
+fun onlySharedAlbums(albums: List<Album>): List<Album> = albums.filter { it.shared }
+
 /** The own and the shared albums as one list: an album that is in both (an own album that is shared) shows up once. */
 fun mergeAlbums(own: List<Album>, shared: List<Album>): List<Album> = (own + shared).distinctBy { it.id }

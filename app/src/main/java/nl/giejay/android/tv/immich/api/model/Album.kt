@@ -11,5 +11,7 @@ data class Album(
     val endDate: Date?,
     val assetCount: Int,
     val startDate: Date? = null,
-    val createdAt: Date? = null
+    val createdAt: Date? = null,
+    /** True when the album is shared with other users (or by them with this user); absent on old servers. */
+    val shared: Boolean = false
 )

@@ -25,6 +25,7 @@ import nl.giejay.android.tv.immich.api.util.ApiUtil.executeAPICall
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
 import nl.giejay.android.tv.immich.shared.prefs.AlbumsFilter
 import nl.giejay.android.tv.immich.shared.prefs.mergeAlbums
+import nl.giejay.android.tv.immich.shared.prefs.onlySharedAlbums
 import nl.giejay.android.tv.immich.shared.prefs.ContentType
 import nl.giejay.android.tv.immich.shared.prefs.DEBUG_MODE
 import nl.giejay.android.tv.immich.shared.prefs.DISABLE_SSL_VERIFICATION
@@ -227,7 +228,7 @@ class ApiClient(private val config: ApiClientConfig) {
      */
     suspend fun listAlbums(filter: AlbumsFilter): Either<String, List<Album>> = when (filter) {
         AlbumsFilter.MINE -> executeAPICall(200) { service.listAlbums() }
-        AlbumsFilter.SHARED -> executeAPICall(200) { service.listAlbums(shared = true) }
+        AlbumsFilter.SHARED -> executeAPICall(200) { service.listAlbums(shared = true) }.map { onlySharedAlbums(it) }
         AlbumsFilter.ALL -> executeAPICall(200) { service.listAlbums() }.flatMap { own ->
             executeAPICall(200) { service.listAlbums(shared = true) }.map { mergeAlbums(own, it) }
         }
