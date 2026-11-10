@@ -9,6 +9,7 @@ import android.view.View
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,9 @@ import java.text.DateFormat as JavaDateFormat
 class InfoPanelState {
     var open by mutableStateOf(false)
     var info by mutableStateOf<AssetInfo?>(null)
+
+    /** The panel can be taller than the screen; Up/Down scroll it while it is open (it takes no focus). */
+    val scrollState = ScrollState(0)
 }
 
 /**
@@ -101,7 +105,7 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
                     visible = panelState.open,
                     enter = slideInHorizontally { it },
                     exit = slideOutHorizontally { it },
-                ) { InfoPanel(panelState.info) }
+                ) { InfoPanel(panelState.info, panelState.scrollState) }
             }
         }
         // the overlay only draws; it must not take the D-pad focus away from the pager
@@ -158,11 +162,20 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
             backDownConsumed = true
             return SliderKeyEventResult.HANDLED_CONSUME
         }
+        if (panel.open && (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN || event.keyCode == KeyEvent.KEYCODE_DPAD_UP)) {
+            val step = if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) SCROLL_STEP_PX else -SCROLL_STEP_PX
+            panel.scrollState.dispatchRawDelta(step)
+            return SliderKeyEventResult.HANDLED_CONSUME
+        }
         return SliderKeyEventResult.UNHANDLED
     }
 
     override fun onKeyUp(event: KeyEvent, state: SliderKeyEventState): SliderKeyEventResult {
         // the key-up of the Back that closed the panel must not reach the activity, it would leave the viewer
+        val panelOpen = this.state?.open == true
+        if (panelOpen && (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN || event.keyCode == KeyEvent.KEYCODE_DPAD_UP)) {
+            return SliderKeyEventResult.HANDLED_CONSUME
+        }
         if (event.keyCode == KeyEvent.KEYCODE_BACK && backDownConsumed) {
             backDownConsumed = false
             return SliderKeyEventResult.HANDLED_CONSUME
@@ -175,6 +188,7 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
         val context = pluginContext ?: return
         loadJob?.cancel()
         panel.info = null
+        panel.scrollState.dispatchRawDelta(-panel.scrollState.value.toFloat())
         loadJob = context.ioScope.launch(Dispatchers.IO) {
             val client = ApiClient.getClient(
                 ApiClientConfig(
@@ -194,5 +208,9 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
             val info = buildAssetInfo(asset, albums) { formatter.format(it) }
             withContext(Dispatchers.Main) { panel.info = info }
         }
+    }
+
+    private companion object {
+        const val SCROLL_STEP_PX = 240f
     }
 }

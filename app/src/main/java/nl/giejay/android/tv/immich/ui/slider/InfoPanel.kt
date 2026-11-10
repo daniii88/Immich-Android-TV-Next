@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -20,16 +20,16 @@ import nl.giejay.android.tv.immich.ui.theme.ImmichTheme
 
 /** The info panel on the right edge of the viewer: file name, then label/value pairs. Read only. */
 @Composable
-fun InfoPanel(info: AssetInfo?, modifier: Modifier = Modifier) {
+fun InfoPanel(info: AssetInfo?, scrollState: ScrollState, modifier: Modifier = Modifier) {
     ImmichTheme {
         Column(
             modifier
                 .width(440.dp)
                 .fillMaxHeight()
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp, vertical = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .verticalScroll(scrollState)
+                .padding(horizontal = 32.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(stringResource(R.string.info_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
             if (info == null) {
