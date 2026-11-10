@@ -8,6 +8,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -52,6 +61,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import nl.giejay.android.tv.immich.R
@@ -179,9 +189,30 @@ private fun MapContent(cities: List<PlaceCity>, landDots: BooleanArray, zoom: Ma
         entry.runCatching { requestFocus() }
     }
 
+    // one step in: half the view, centred on the bubble in focus; one step out: back to the view before
+    val zoomIn = {
+        val width = viewport.width / 2
+        if (width >= MapViewport.MIN_WIDTH_DEGREES) {
+            zoom.zoomInto(MapViewport.around(focused.lat, focused.lon, width), focused.cities.first())
+        }
+    }
+    val zoomOut = { zoom.zoomOut(); Unit }
+
     Column(
         // the page is entered on the biggest bubble, not on the first place card
-        Modifier.fillMaxSize().focusProperties { enter = { entry } }.focusGroup(),
+        Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                // remotes with zoom or channel keys: zoom without leaving the D-pad
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.ZoomIn, Key.ChannelUp, Key.Plus, Key.NumPadAdd -> { zoomIn(); true }
+                    Key.ZoomOut, Key.ChannelDown, Key.Minus, Key.NumPadSubtract -> { zoomOut(); true }
+                    else -> false
+                }
+            }
+            .focusProperties { enter = { entry } }
+            .focusGroup(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // the biggest rectangle of the map's proportions that fits the room above the place cards
@@ -204,6 +235,8 @@ private fun MapContent(cities: List<PlaceCity>, landDots: BooleanArray, zoom: Ma
                         else -> firstCard.runCatching { requestFocus() }
                     }
                 },
+                onZoomIn = zoomIn,
+                onZoomOut = zoomOut,
                 modifier = Modifier.size(width, width / WorldDots.ASPECT),
             )
         }
@@ -223,6 +256,8 @@ private fun WorldMap(
     entry: FocusRequester,
     onFocused: (MapCluster) -> Unit,
     onOpen: (MapCluster) -> Unit,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dotColor = MaterialTheme.colorScheme.onSurface
@@ -284,6 +319,13 @@ private fun WorldMap(
                 mapHeight = mapHeight,
             )
         }
+        Row(
+            Modifier.align(Alignment.TopEnd).padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ZoomButton("−", stringResource(R.string.map_zoom_out), onZoomOut)
+            ZoomButton("+", stringResource(R.string.map_zoom_in), onZoomIn)
+        }
         if (zoomed) {
             Text(
                 text = stringResource(R.string.map_zoom_out_hint),
@@ -296,6 +338,30 @@ private fun WorldMap(
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
+    }
+}
+
+/** A small round zoom button; the same as the zoom keys, for remotes without them. */
+@Composable
+private fun ZoomButton(symbol: String, description: String, onClick: () -> Unit) {
+    var hasFocus by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .size(40.dp)
+            .background(
+                if (hasFocus) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                CircleShape,
+            )
+            .semantics { contentDescription = description }
+            .onFocusChanged { hasFocus = it.isFocused }
+            .clickable(interactionSource = null, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = symbol,
+            style = MaterialTheme.typography.titleLarge,
+            color = if (hasFocus) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -325,6 +391,8 @@ private fun MapBubble(
         modifier
             .offset(x, y)
             .size(size)
+            // the bubble in focus, with its name, lies above its neighbours
+            .zIndex(if (selected || hasFocus) 1f else 0f)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -354,7 +422,7 @@ private fun MapBubble(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = if (cluster.count > 99) "99+" else cluster.count.toString(),
+            text = formatCount(cluster.count),
             style = MaterialTheme.typography.labelMedium,
             fontSize = if (cluster.count > 99) 9.sp else 11.sp,
             fontWeight = FontWeight.Bold,
@@ -364,7 +432,8 @@ private fun MapBubble(
         )
         if (label != null) {
             // the name of the bubble in focus, above it (below near the top edge of the map)
-            val above = cluster.lat < 55.0
+            // above unless the bubble is in the top quarter of the map, where the label would be cut off
+            val above = viewport.y(cluster.lat) > 0.25f
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
@@ -394,8 +463,10 @@ private fun MapBubble(
 private fun PlaceCards(cluster: MapCluster, firstCard: FocusRequester, onOpenCity: (PlaceCity) -> Unit) {
     val context = LocalContext.current
     Crossfade(targetState = cluster, label = "placeCards") { shown ->
+        val more = shown.cities.size - MAX_CARDS
         val cards = remember(shown) {
-            orderByProximity(shown.cities).take(MAX_CARDS).map { city ->
+            // the biggest places of a large bubble, as a walk through the neighbourhood
+            orderByProximity(shown.cities.take(MAX_CARDS)).map { city ->
                 city to Card(
                     title = city.city,
                     description = listOfNotNull(
@@ -420,8 +491,25 @@ private fun PlaceCards(cluster: MapCluster, firstCard: FocusRequester, onOpenCit
                     modifier = if (index == 0) Modifier.focusRequester(firstCard) else Modifier,
                 )
             }
+            if (more > 0) {
+                item {
+                    Text(
+                        text = context.resources.getQuantityString(R.plurals.map_more_places, more, more),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 48.dp),
+                    )
+                }
+            }
         }
     }
+}
+
+/** 7, 353, 1.2k, 15k: the photo count as it fits the marker. */
+internal fun formatCount(count: Int): String = when {
+    count < 1000 -> count.toString()
+    count < 10_000 -> "${count / 1000}.${count % 1000 / 100}k"
+    else -> "${count / 1000}k"
 }
 
 private const val MAX_CARDS = 40

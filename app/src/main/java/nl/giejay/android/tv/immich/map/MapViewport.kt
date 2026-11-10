@@ -21,14 +21,31 @@ data class MapViewport(val lonMin: Double, val lonMax: Double, val latTop: Doubl
     fun contains(lat: Double, lon: Double, margin: Double = 0.0): Boolean =
         lon in (lonMin - width * margin)..(lonMax + width * margin) && lat in (latBottom - height * margin)..(latTop + height * margin)
 
-    /** Cities closer than this merge into one bubble: [MAP_CLUSTER_RADIUS_DEGREES] on the world map, finer the more is zoomed in. */
-    val clusterRadius: Double get() = MAP_CLUSTER_RADIUS_DEGREES * width / WORLD.width
+    /**
+     * Cities closer than this (in degrees) merge into one bubble. It is a fraction of the view, so bubbles merge before
+     * they would overlap on screen at every zoom, and a library with thousands of places in one country shows as a few
+     * bubbles on the world map and falls apart into cities as you zoom in.
+     */
+    val clusterRadius: Double get() = CLUSTER_RADIUS_FRACTION * width
 
     companion object {
         val WORLD = MapViewport(-180.0, 180.0, WorldDots.LAT_TOP, WorldDots.LAT_BOTTOM)
 
         /** The smallest view, so a single city is not zoomed into a blur of dots. */
         const val MIN_WIDTH_DEGREES = 10.0
+
+        /** Bubbles closer than this fraction of the map width would touch (a bubble is about 7 % of the map wide). */
+        const val CLUSTER_RADIUS_FRACTION = 0.06
+
+        /** A view of the given width centred on a position, moved into the world if it would stick out. */
+        fun around(lat: Double, lon: Double, width: Double): MapViewport {
+            val world = WORLD
+            val w = width.coerceIn(MIN_WIDTH_DEGREES, world.width)
+            val height = w / (world.width / world.height)
+            val lonMin = (lon - w / 2).coerceIn(world.lonMin, world.lonMax - w)
+            val latTop = (lat + height / 2).coerceIn(world.latBottom + height, world.latTop)
+            return MapViewport(lonMin, lonMin + w, latTop, latTop - height)
+        }
     }
 }
 
@@ -39,13 +56,11 @@ fun viewportFor(cities: List<PlaceCity>): MapViewport {
     val lonSpan = cities.maxOf { it.lon } - cities.minOf { it.lon }
     val latSpan = cities.maxOf { it.lat } - cities.minOf { it.lat }
     val width = min(world.width, max(MapViewport.MIN_WIDTH_DEGREES, max(lonSpan * 1.8, latSpan * 1.8 * aspect)))
-    val height = width / aspect
-    val centreLon = (cities.maxOf { it.lon } + cities.minOf { it.lon }) / 2
-    val centreLat = (cities.maxOf { it.lat } + cities.minOf { it.lat }) / 2
-    // keep the view inside the world
-    val lonMin = (centreLon - width / 2).coerceIn(world.lonMin, world.lonMax - width)
-    val latTop = (centreLat + height / 2).coerceIn(world.latBottom + height, world.latTop)
-    return MapViewport(lonMin, lonMin + width, latTop, latTop - height)
+    return MapViewport.around(
+        lat = (cities.maxOf { it.lat } + cities.minOf { it.lat }) / 2,
+        lon = (cities.maxOf { it.lon } + cities.minOf { it.lon }) / 2,
+        width = width,
+    )
 }
 
 /** The bubbles of [viewport]: the cities in view, merged as finely as the zoom allows. */

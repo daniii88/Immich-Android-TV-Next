@@ -316,6 +316,14 @@
     <string name="map">Карта</string>
     <string name="map_empty">Пока нет фото с местоположением</string>
     <string name="map_zoom_out_hint">Назад: уменьшить</string>
+    <string name="map_zoom_out">Уменьшить</string>
+    <string name="map_zoom_in">Увеличить</string>
+    <plurals name="map_more_places">
+        <item quantity="one">Ещё %d место – увеличьте</item>
+        <item quantity="few">Ещё %d места – увеличьте</item>
+        <item quantity="many">Ещё %d мест – увеличьте</item>
+        <item quantity="other">Ещё %d места – увеличьте</item>
+    </plurals>
     <plurals name="map_photos">
         <item quantity="one">%d фото</item>
         <item quantity="few">%d фото</item>

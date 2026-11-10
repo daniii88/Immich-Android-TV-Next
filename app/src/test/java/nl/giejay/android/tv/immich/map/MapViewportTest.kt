@@ -42,9 +42,9 @@ class MapViewportTest {
 
     @Test
     fun `the cluster radius shrinks with the zoom`() {
-        assertThat(MapViewport.WORLD.clusterRadius).isEqualTo(MAP_CLUSTER_RADIUS_DEGREES)
+        assertThat(MapViewport.WORLD.clusterRadius).isWithin(1e-9).of(MapViewport.CLUSTER_RADIUS_FRACTION * 360.0)
         val zoomed = viewportFor(listOf(city("A", 47.0, 7.0), city("B", 48.8, 2.3)))
-        assertThat(zoomed.clusterRadius).isLessThan(MAP_CLUSTER_RADIUS_DEGREES / 5)
+        assertThat(zoomed.clusterRadius).isLessThan(MapViewport.WORLD.clusterRadius / 5)
     }
 
     @Test
