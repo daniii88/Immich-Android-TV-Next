@@ -311,6 +311,7 @@
     <string name="info_resolution">Разрешение</string>
     <string name="info_file_size">Размер файла</string>
     <string name="info_albums">Альбомы</string>
+    <string name="live_photo_play">Воспроизвести живое фото</string>
     <string name="albums_filter">Показывать альбомы</string>
     <string name="albums_filter_text">Какие альбомы показывать: свои, общие или все</string>
     <string name="albums_filter_mine">Мои альбомы</string>

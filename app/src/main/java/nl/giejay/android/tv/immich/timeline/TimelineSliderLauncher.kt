@@ -6,7 +6,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.giejay.android.tv.immich.album.AlbumDetailsFragmentDirections
+import nl.giejay.android.tv.immich.api.ApiClient
+import nl.giejay.android.tv.immich.api.ApiClientConfig
 import nl.giejay.android.tv.immich.api.model.Memory
+import nl.giejay.android.tv.immich.shared.util.buildSliderConfiguration
+import timber.log.Timber
 import nl.giejay.android.tv.immich.shared.prefs.MetaDataScreen
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.shared.prefs.SCREENSAVER_ANIMATE_ASSET_SLIDE
@@ -49,6 +53,14 @@ class TimelineSliderLauncher(
         viewModel.rememberSelectionByAssetId(assetId)
 
         val bucketKey = viewModel.bucketKeyForAsset(assetId) ?: return
+
+        // the primary asset of a stack stands for the whole series: open all its members (primary first)
+        val stackId = viewModel.bucketAssets.value[bucketKey]?.firstOrNull { it.id == assetId }
+            ?.takeIf { it.stackCount > 1 }?.stackId
+        if (stackId != null) {
+            openStack(stackId)
+            return
+        }
 
         setLoading(true)
         scope.launch(Dispatchers.Default) {
@@ -112,6 +124,27 @@ class TimelineSliderLauncher(
                 )
                 sliderViewModel.configuration = config
                 navigate(AlbumDetailsFragmentDirections.actionToPhotoSlider())
+            }
+        }
+    }
+
+    private fun openStack(stackId: String) {
+        setLoading(true)
+        scope.launch(Dispatchers.IO) {
+            val result = ApiClient.getClient(ApiClientConfig.fromPrefs()).getStack(stackId)
+            withContext(Dispatchers.Main) {
+                if (!isActive()) return@withContext
+                setLoading(false)
+                result.fold(
+                    { Timber.w("Could not load stack %s: %s", stackId, it) },
+                    { stack ->
+                        // near-identical shots: pairing portraits would pair copies of one photo
+                        sliderViewModel.configuration = buildSliderConfiguration(
+                            stack.assets.toSliderItems(keepOrder = true, mergePortrait = false)
+                        )
+                        navigate(AlbumDetailsFragmentDirections.actionToPhotoSlider())
+                    }
+                )
             }
         }
     }

@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -56,6 +58,8 @@ object ImmichIcons {
     val Favorites: ImageVector get() = Icons.Filled.Favorite
     val Memories: ImageVector get() = Icons.Filled.AutoAwesome
     val Partners: ImageVector get() = Icons.Filled.Group
+    val Stack: ImageVector get() = Icons.Filled.Layers
+    val LivePhoto: ImageVector get() = Icons.Filled.MotionPhotosOn
     val Videos: ImageVector get() = Icons.Filled.Videocam
     val Archive: ImageVector get() = Icons.Filled.Archive
     val Tags: ImageVector get() = Icons.Filled.Sell

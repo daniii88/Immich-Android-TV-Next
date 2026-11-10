@@ -104,6 +104,15 @@ fun ImmichCard(card: ICard, focused: Boolean, modifier: Modifier = Modifier) {
                 .animatedBorder(borderColor, ImmichFocus.BorderWidth, shape),
         ) {
             if (card.isFolder) FolderCardArt(card.coverUrl, card.badge) else CardImage(card.thumbnailUrl)
+            if (card.stackCount > 1 || card.isLivePhoto) {
+                Row(
+                    Modifier.align(Alignment.BottomStart).padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (card.stackCount > 1) CardBadge(ImmichIcons.Stack, card.stackCount.toString())
+                    if (card.isLivePhoto) CardBadge(ImmichIcons.LivePhoto, null)
+                }
+            }
             if (card.selected) {
                 Icon(
                     imageVector = ImmichIcons.Selected,
@@ -323,4 +332,19 @@ fun ImmichFocusableCard(
                 onClick = onClick,
             ),
     )
+}
+
+/** Small dark chip on a photo card: an icon and an optional count (stack of photos, live photo). */
+@Composable
+internal fun CardBadge(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String?) {
+    Row(
+        Modifier
+            .background(Color(0xB3000000), CircleShape)
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+        if (text != null) Text(text, style = MaterialTheme.typography.labelSmall, color = Color.White)
+    }
 }

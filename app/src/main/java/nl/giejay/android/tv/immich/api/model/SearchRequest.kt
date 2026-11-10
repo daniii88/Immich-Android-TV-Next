@@ -20,7 +20,9 @@ data class SearchRequest(val page: Int? = 0,
                          /** null = not sent */
                          val tagIds: List<String>? = null,
                          /** true = favorites only; null = not sent */
-                         val isFavorite: Boolean? = null
+                         val isFavorite: Boolean? = null,
+                         /** true = a stack shows as its primary asset (with `stack` info), the other members are left out; null = not sent */
+                         val withStacked: Boolean? = null
 )
 
 /** POST /search/smart: CLIP search by image content, needs machine learning on the server. */

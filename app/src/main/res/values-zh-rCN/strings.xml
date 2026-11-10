@@ -317,6 +317,7 @@
     <string name="info_resolution">分辨率</string>
     <string name="info_file_size">文件大小</string>
     <string name="info_albums">相册</string>
+    <string name="live_photo_play">播放实况照片</string>
     <string name="albums_filter">显示相册</string>
     <string name="albums_filter_text">显示哪些相册：自己的、共享的或全部</string>
     <string name="albums_filter_mine">我的相册</string>

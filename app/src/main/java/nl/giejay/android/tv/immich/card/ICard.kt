@@ -11,4 +11,8 @@ interface ICard {
     val isFolder: Boolean get() = false
     val coverUrl: String? get() = null
     val badge: String? get() = null
+    /** More than 1: the card is the primary asset of a stack of this many photos. */
+    val stackCount: Int get() = 0
+    /** The photo has a motion video (live photo). */
+    val isLivePhoto: Boolean get() = false
 }

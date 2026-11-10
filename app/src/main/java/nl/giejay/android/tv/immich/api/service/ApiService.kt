@@ -4,6 +4,7 @@ import nl.giejay.android.tv.immich.api.model.Album
 import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.model.Partner
+import nl.giejay.android.tv.immich.api.model.Stack
 import nl.giejay.android.tv.immich.api.model.PeopleResponse
 import nl.giejay.android.tv.immich.api.model.Person
 import nl.giejay.android.tv.immich.api.model.TagInfo
@@ -41,6 +42,9 @@ interface ApiService {
     @GET("albums/{id}")
     suspend fun getAlbum(@Path("id") id: String): Response<Album>
 
+    @GET("stacks/{id}")
+    suspend fun getStack(@Path("id") id: String): Response<Stack>
+
     @GET("assets/{id}")
     suspend fun getAsset(@Path("id") id: String): Response<Asset>
 
@@ -56,7 +60,8 @@ interface ApiService {
         @Query("order") order: String = "desc",
         @Query("visibility") visibility: String? = "timeline",
         @Query("withPartners") withPartners: Boolean? = null,
-        @Query("userId") userId: String? = null
+        @Query("userId") userId: String? = null,
+        @Query("withStacked") withStacked: Boolean? = null
     ): Response<List<TimeBucketSummary>>
 
     @GET("timeline/bucket")
@@ -65,7 +70,8 @@ interface ApiService {
         @Query("order") order: String = "desc",
         @Query("visibility") visibility: String? = "timeline",
         @Query("withPartners") withPartners: Boolean? = null,
-        @Query("userId") userId: String? = null
+        @Query("userId") userId: String? = null,
+        @Query("withStacked") withStacked: Boolean? = null
     ): Response<TimeBucketAssetsResponse>
 
     /** The users that share their library with this user ("shared-with") or the other way around ("shared-by"). */

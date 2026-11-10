@@ -8,6 +8,7 @@ import nl.giejay.android.tv.immich.security.ApiKeyCipher
 import nl.giejay.android.tv.immich.slider.FavoriteButtonControllerPlugin
 import nl.giejay.android.tv.immich.slider.FavoriteService
 import nl.giejay.android.tv.immich.slider.InfoPanelPlugin
+import nl.giejay.android.tv.immich.slider.LivePhotoPlugin
 import nl.giejay.mediaslider.adapter.AlignOption
 import nl.giejay.mediaslider.adapter.MetaDataClock
 import nl.giejay.mediaslider.adapter.MetaDataItem
@@ -199,17 +200,19 @@ object PreferenceManager {
     fun createEnabledSliderPlugins(scope: CoroutineScope, favoriteService: FavoriteService): EnabledSliderPlugins {
         val metadataPlugin = MetadataViewPlugin()
         val infoPanelPlugin = InfoPanelPlugin()
+        val livePhotoPlugin = LivePhotoPlugin()
         val remoteControlsPlugin = MediaRemoteControlsKeyEventPlugin()
         return EnabledSliderPlugins(
             controllerPlugins = listOf(
                 FavoriteButtonControllerPlugin(favoriteService, scope),
                 ExternalPlayerButtonControllerPlugin(),
                 infoPanelPlugin,
+                livePhotoPlugin,
                 metadataPlugin
             ),
-            viewPlugins = listOf(metadataPlugin, DateOverlayViewPlugin(), infoPanelPlugin),
+            viewPlugins = listOf(metadataPlugin, DateOverlayViewPlugin(), infoPanelPlugin, livePhotoPlugin),
             // the info panel comes first so Back closes it before anything else reacts
-            keyEventPlugins = listOf(infoPanelPlugin, remoteControlsPlugin)
+            keyEventPlugins = listOf(infoPanelPlugin, livePhotoPlugin, remoteControlsPlugin)
         )
     }
 

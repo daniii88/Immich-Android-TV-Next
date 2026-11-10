@@ -9,4 +9,6 @@ data class Card(
     override var selected: Boolean = false,
     override val isFolder: Boolean = false,
     override val coverUrl: String? = null,
-    override val badge: String? = null) : ICard
+    override val badge: String? = null,
+    override val stackCount: Int = 0,
+    override val isLivePhoto: Boolean = false) : ICard

@@ -35,7 +35,11 @@ data class TimeBucketAssetsResponse(
     val fileCreatedAt: List<String>,
     val localOffsetHours: List<Double>,
     @JsonAdapter(FlexibleNullableStringListAdapter::class)
-    val duration: List<String?>
+    val duration: List<String?>,
+    /** Only sent with `withStacked`: per asset `[stackId, assetCount]` on the primary asset of a stack, else null. */
+    val stack: List<List<String>?>? = null,
+    /** Per asset the id of its motion video when it is a live photo, else null. */
+    val livePhotoVideoId: List<String?>? = null
 )
 
 /**
@@ -50,7 +54,12 @@ data class TimelineAsset(
     val thumbhash: String?,
     val fileCreatedAt: OffsetDateTime,
     val localOffsetHours: Double,
-    val duration: String?
+    val duration: String?,
+    /** The stack this asset is the primary asset of (the other members are left out of the timeline), with its size. */
+    val stackId: String? = null,
+    val stackCount: Int = 0,
+    /** The id of the motion video of a live photo. */
+    val livePhotoVideoId: String? = null
 )
 
 fun TimeBucketAssetsResponse.toTimelineAssets(): List<TimelineAsset> =
@@ -63,7 +72,10 @@ fun TimeBucketAssetsResponse.toTimelineAssets(): List<TimelineAsset> =
             thumbhash = thumbhash.getOrNull(i),
             fileCreatedAt = parseTimelineTimestamp(fileCreatedAt[i]),
             localOffsetHours = localOffsetHours.getOrElse(i) { 0.0 },
-            duration = duration.getOrNull(i)
+            duration = duration.getOrNull(i),
+            stackId = stack?.getOrNull(i)?.getOrNull(0),
+            stackCount = stack?.getOrNull(i)?.getOrNull(1)?.toIntOrNull() ?: 0,
+            livePhotoVideoId = livePhotoVideoId?.getOrNull(i)
         )
     }
 

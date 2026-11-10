@@ -358,6 +358,7 @@
     <string name="info_resolution">Resolution</string>
     <string name="info_file_size">File size</string>
     <string name="info_albums">Albums</string>
+    <string name="live_photo_play">Play live photo</string>
     <string name="albums_filter">Show albums</string>
     <string name="albums_filter_text">Which albums to list: your own, the shared ones or all</string>
     <string name="albums_filter_mine">My albums</string>

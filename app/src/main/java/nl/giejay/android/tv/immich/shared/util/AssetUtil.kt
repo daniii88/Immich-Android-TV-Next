@@ -72,7 +72,8 @@ fun Asset.toSliderItem(): SliderItem {
         AssetMetaDataMapping.providersFor(this),
         ApiUtil.getThumbnailUrl(this.id, "preview", PreferenceManager.get(SLIDER_LOAD_EDITED_PHOTO)),
         isPanorama = this.isPanoramaImage(),
-        isFavorite = this.isFavorite
+        isFavorite = this.isFavorite,
+        livePhotoVideoUrl = this.livePhotoVideoId?.let { ApiUtil.getFileUrl(it, "VIDEO") }
     )
 }
 
@@ -147,5 +148,7 @@ fun Asset.toCard(): Card {
         this.exifInfo?.description ?: "",
         this.id,
         ApiUtil.getThumbnailUrl(this.id, "thumbnail"),
-        ApiUtil.getThumbnailUrl(this.id, "preview"))
+        ApiUtil.getThumbnailUrl(this.id, "preview"),
+        stackCount = this.stack?.assetCount ?: 0,
+        isLivePhoto = this.livePhotoVideoId != null)
 }
