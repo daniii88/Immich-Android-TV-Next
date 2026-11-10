@@ -13,12 +13,15 @@ class FilteredAssetsFragment : GenericAssetFragment() {
     private lateinit var filterType: String
     private lateinit var filterValue: String
     private lateinit var filterTitle: String
+    /** Narrows a city to its country, where two countries have a city of the same name (Paris); null: any. */
+    private var filterCountry: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val args = FilteredAssetsFragmentArgs.fromBundle(requireArguments())
         filterType = args.filterType
         filterValue = args.filterValue
         filterTitle = args.filterTitle
+        filterCountry = args.filterCountry
         super.onCreate(savedInstanceState)
     }
 
@@ -29,6 +32,7 @@ class FilteredAssetsFragment : GenericAssetFragment() {
             contentType = currentFilter,
             order = if (currentSort == PhotosOrder.NEWEST_OLDEST) "desc" else "asc",
             city = if (filterType == PlacesFragment.FILTER_CITY) filterValue else null,
+            country = if (filterType == PlacesFragment.FILTER_CITY) filterCountry else null,
             tagIds = if (filterType == TagsFragment.FILTER_TAG) listOf(filterValue) else emptyList(),
         ).map { it.assets }
 

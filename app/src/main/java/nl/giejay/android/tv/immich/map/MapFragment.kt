@@ -79,7 +79,7 @@ class MapFragment : Fragment() {
 
     private fun openCity(place: PlaceCity) {
         findNavController().navigate(
-            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_CITY, place.city, place.city),
+            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_CITY, place.city, place.city, place.country),
         )
     }
 }

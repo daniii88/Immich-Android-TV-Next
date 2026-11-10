@@ -57,6 +57,19 @@ class DemoInterceptor(private val openAsset: (String) -> InputStream) : Intercep
             parts == listOf("search", "random") -> respond(request, 200, randomAssets(body(request)).map(::assetJson))
             parts == listOf("people") -> respond(request, 200, mapOf("total" to 0, "hasNextPage" to false, "people" to emptyList<Any>()))
             parts == listOf("memories") -> respond(request, 200, emptyList<Any>())
+            // every demo photo has a place, so the map page has something to show
+            parts == listOf("map", "markers") -> respond(request, 200, DemoCatalog.photos.mapIndexed { index, photo ->
+                val place = DemoCatalog.place(photo)
+                mapOf(
+                    "id" to photo.id,
+                    // a little spread, so the photos of a city are not all the same point
+                    "lat" to place.lat + (index % 5) * 0.004,
+                    "lon" to place.lon + (index % 3) * 0.004,
+                    "city" to place.city,
+                    "state" to null,
+                    "country" to place.country,
+                )
+            })
             parts == listOf("timeline", "buckets") -> respond(request, 200, timeBuckets(query("order")))
             parts == listOf("timeline", "bucket") -> respond(request, 200, timeBucket(query("timeBucket"), query("order")))
             parts == listOf("view", "folder", "unique-paths") -> respond(request, 200, DemoCatalog.albums.map { it.name })

@@ -65,12 +65,10 @@ class TimelineComposeFragment : Fragment() {
                 PreferenceManager.get(DEBUG_MODE)
             )
         )
-        // same key as the View timeline, so both share the loaded data and a server change resets it
-        val clientKey = ApiClientConfig.fromPrefs().hashCode()
         viewModel = ViewModelProvider(
             requireActivity(),
             TimelineViewModelFactory(apiClient)
-        )["timeline-$clientKey", TimelineViewModel::class.java]
+        )[timelineViewModelKey(), TimelineViewModel::class.java]
         sliderLauncher = TimelineSliderLauncher(
             viewModel = viewModel,
             sliderViewModel = sliderViewModel,

@@ -241,4 +241,13 @@ class DemoInterceptorTest {
 
         assertThat(response.code).isEqualTo(204)
     }
+
+    @Test
+    fun `the demo has map markers for every photo, with places`() {
+        val markers = parse<Array<nl.giejay.android.tv.immich.api.model.MapMarker>>(get("map/markers").body?.string()).toList()
+        assertThat(markers).hasSize(DemoCatalog.photos.size)
+        assertThat(markers.all { !it.city.isNullOrBlank() && !it.country.isNullOrBlank() }).isTrue()
+        assertThat(markers.map { it.city }.toSet()).containsAtLeast("Berlin", "Lisbon", "Innsbruck")
+        assertThat(markers.all { it.lat in -90.0..90.0 && it.lon in -180.0..180.0 }).isTrue()
+    }
 }

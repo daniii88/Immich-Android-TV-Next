@@ -120,6 +120,11 @@
         <argument
             android:name="filterTitle"
             app:argType="string" />
+        <argument
+            android:name="filterCountry"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
     </fragment>
 
     <fragment
