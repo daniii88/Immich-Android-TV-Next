@@ -347,6 +347,17 @@
     <string name="tags">Tags</string>
     <string name="favorites">Favorites</string>
     <string name="memories">Memories</string>
+    <string name="info_title">Info</string>
+    <string name="info_loading">Loading…</string>
+    <string name="info_date">Date</string>
+    <string name="info_description">Description</string>
+    <string name="info_camera">Camera</string>
+    <string name="info_lens">Lens</string>
+    <string name="info_exposure">Exposure</string>
+    <string name="info_location">Location</string>
+    <string name="info_resolution">Resolution</string>
+    <string name="info_file_size">File size</string>
+    <string name="info_albums">Albums</string>
     <string name="albums_filter">Show albums</string>
     <string name="albums_filter_text">Which albums to list: your own, the shared ones or all</string>
     <string name="albums_filter_mine">My albums</string>

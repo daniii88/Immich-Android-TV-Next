@@ -298,6 +298,17 @@
     <string name="tags">Étiquettes</string>
     <string name="favorites">Favoris</string>
     <string name="memories">Souvenirs</string>
+    <string name="info_title">Infos</string>
+    <string name="info_loading">Chargement…</string>
+    <string name="info_date">Date</string>
+    <string name="info_description">Description</string>
+    <string name="info_camera">Appareil</string>
+    <string name="info_lens">Objectif</string>
+    <string name="info_exposure">Exposition</string>
+    <string name="info_location">Lieu</string>
+    <string name="info_resolution">Résolution</string>
+    <string name="info_file_size">Taille du fichier</string>
+    <string name="info_albums">Albums</string>
     <string name="albums_filter">Afficher les albums</string>
     <string name="albums_filter_text">Quels albums afficher : les vôtres, partagés ou tous</string>
     <string name="albums_filter_mine">Mes albums</string>

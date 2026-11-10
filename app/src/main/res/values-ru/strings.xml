@@ -300,6 +300,17 @@
     <string name="tags">Теги</string>
     <string name="favorites">Избранное</string>
     <string name="memories">Воспоминания</string>
+    <string name="info_title">Информация</string>
+    <string name="info_loading">Загрузка…</string>
+    <string name="info_date">Дата</string>
+    <string name="info_description">Описание</string>
+    <string name="info_camera">Камера</string>
+    <string name="info_lens">Объектив</string>
+    <string name="info_exposure">Экспозиция</string>
+    <string name="info_location">Место</string>
+    <string name="info_resolution">Разрешение</string>
+    <string name="info_file_size">Размер файла</string>
+    <string name="info_albums">Альбомы</string>
     <string name="albums_filter">Показывать альбомы</string>
     <string name="albums_filter_text">Какие альбомы показывать: свои, общие или все</string>
     <string name="albums_filter_mine">Мои альбомы</string>
