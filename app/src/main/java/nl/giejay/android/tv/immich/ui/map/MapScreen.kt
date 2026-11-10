@@ -185,6 +185,11 @@ private fun MapContent(
 ) {
     val viewport = zoom.viewport
     val clusters = remember(cities, viewport) { clustersFor(cities, viewport) }
+    if (clusters.isEmpty()) {
+        // a view without any place (should not happen: zooming only goes where places are); Back zooms out
+        Message(stringResource(R.string.map_empty))
+        return
+    }
     var focused by remember(clusters) { mutableStateOf(clusters.first()) }
     val firstCard = remember { FocusRequester() }
     val entry = remember { FocusRequester() }
@@ -203,7 +208,9 @@ private fun MapContent(
     val zoomIn = {
         val width = viewport.width / 2
         if (width >= MapViewport.MIN_WIDTH_DEGREES) {
-            zoom.zoomInto(MapViewport.around(focused.lat, focused.lon, width), focused.cities.first())
+            val view = MapViewport.around(focused.lat, focused.lon, width)
+            // only into a view that has a place in it
+            if (clustersFor(cities, view).isNotEmpty()) zoom.zoomInto(view, focused.cities.first())
         }
     }
     val zoomOut = { zoom.zoomOut(); Unit }

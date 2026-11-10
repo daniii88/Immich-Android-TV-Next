@@ -66,8 +66,15 @@ fun clusterCities(cities: List<PlaceCity>, radiusDegrees: Double = MAP_CLUSTER_R
 
 private fun centre(group: List<PlaceCity>): Pair<Double, Double> {
     val total = group.sumOf { it.count }
-    return group.sumOf { it.lat * it.count } / total to group.sumOf { it.lon * it.count } / total
+    // longitudes are averaged as offsets from the first city, so places on either side of the date line (179 and -179)
+    // average to 180 and not to 0
+    val reference = group.first().lon
+    val offset = group.sumOf { wrapDegrees(it.lon - reference) * it.count } / total
+    return group.sumOf { it.lat * it.count } / total to wrapDegrees(reference + offset)
 }
+
+/** Into [-180, 180). */
+internal fun wrapDegrees(degrees: Double): Double = ((degrees + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
 
 /** Rough distance in degrees: longitude differences shrink towards the poles, and wrap around the date line. */
 internal fun distanceDegrees(a: Pair<Double, Double>, b: Pair<Double, Double>): Double {

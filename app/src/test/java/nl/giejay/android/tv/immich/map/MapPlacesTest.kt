@@ -80,4 +80,21 @@ class MapPlacesTest {
         val b = PlaceCity("B", "X", 5, 0.0, 1.0, "b")
         assertThat(orderByProximity(listOf(a, b))).containsExactly(a, b).inOrder()
     }
+
+    @Test
+    fun `a bubble across the date line sits at the date line, not at zero`() {
+        val clusters = clusterCities(listOf(PlaceCity("Suva", "X", 1, -17.0, 179.0, "a"), PlaceCity("Taveuni", "X", 1, -17.0, -179.0, "b")), 5.0)
+        val lon = clusters.single().lon
+        assertThat(kotlin.math.abs(lon)).isAtLeast(178.0)
+    }
+
+    @Test
+    fun `places that are excluded from the TV app do not reach the map`() {
+        val markers = listOf(marker("a", 1.0, 1.0, "Oslo"), marker("b", 1.0, 1.0, "Oslo"), marker("c", 2.0, 2.0, "Rome"))
+        val shown = nl.giejay.android.tv.immich.api.withoutExcludedMarkers(markers, setOf("a", "c"))
+        val places = groupCities(shown)
+        assertThat(places.map { it.city }).containsExactly("Oslo")
+        assertThat(places.single().coverAssetId).isEqualTo("b") // the hidden photo is not the picture of the place
+        assertThat(nl.giejay.android.tv.immich.api.withoutExcludedMarkers(markers, emptySet())).isEqualTo(markers)
+    }
 }

@@ -48,6 +48,9 @@ import timber.log.Timber
 class LivePhotoState {
     /** The url of the motion video that is playing over the still; null when nothing plays. */
     var playingUrl by mutableStateOf<String?>(null)
+
+    /** The viewer's mute setting when the playback started (it is not on the controller while a photo is showing). */
+    var muted by mutableStateOf(false)
 }
 
 /**
@@ -75,6 +78,7 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
                     context.controller.cancelNextAssetTimer()
                     resumeTimerWith = context.controller
                 }
+                state?.muted = !context.config.isVideoSoundEnable
                 state?.playingUrl = url
                 backCallback?.isEnabled = true
             },
@@ -93,7 +97,7 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
             val url = liveState.playingUrl
             if (url != null) {
                 Box(Modifier.fillMaxSize().background(Color.Black)) {
-                    LivePhotoPlayer(url) { stopPlayback() }
+                    LivePhotoPlayer(url, liveState.muted) { stopPlayback() }
                 }
             }
         }
@@ -159,7 +163,7 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
 }
 
 @Composable
-private fun LivePhotoPlayer(url: String, onEnded: () -> Unit) {
+private fun LivePhotoPlayer(url: String, muted: Boolean, onEnded: () -> Unit) {
     val context = LocalContext.current
     val player = remember(url) {
         ExoPlayer.Builder(context)
@@ -168,6 +172,7 @@ private fun LivePhotoPlayer(url: String, onEnded: () -> Unit) {
             )
             .build()
             .apply {
+                volume = if (muted) 0f else 1f
                 setMediaItem(MediaItem.fromUri(url))
                 prepare()
                 playWhenReady = true
