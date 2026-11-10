@@ -112,6 +112,13 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
         backCallback?.isEnabled = false
     }
 
+    override fun onDestroy(context: SliderViewPluginContext, state: LivePhotoState?) {
+        // the slider view runs this when the viewer is paused (Home, another app): the video must not keep playing,
+        // and its audio must not go on in the background; the composition is not disposed by a pause
+        state?.playingUrl = null
+        backCallback?.isEnabled = false
+    }
+
     override fun onKeyDown(event: KeyEvent, state: SliderKeyEventState): SliderKeyEventResult {
         val live = this.state ?: return SliderKeyEventResult.UNHANDLED
         if (live.playingUrl != null && event.keyCode == KeyEvent.KEYCODE_BACK) {

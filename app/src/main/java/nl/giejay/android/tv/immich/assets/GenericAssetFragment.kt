@@ -78,9 +78,12 @@ abstract class GenericAssetFragment : VerticalCardGridFragment<Asset>() {
 
     override fun filterItems(items: List<Asset>): List<Asset> {
         return items.filter { currentFilter ==  ContentType.ALL || it.type.equals(currentFilter.toString(), ignoreCase = true) }
-            .filter(excludeByTag())
-            .filterNot { excludedAssetIds.contains(it.id) }
+            .let(::withoutExcluded)
     }
+
+    /** Leaves out what the user hides from the grids: the exclusion tag and the assets of the excluded albums. */
+    private fun withoutExcluded(items: List<Asset>): List<Asset> =
+        items.filter(excludeByTag()).filterNot { excludedAssetIds.contains(it.id) }
 
     private fun excludeByTag() = { asset: Asset ->
         asset.tags?.none { t -> t.name == "exclude_immich_tv" } ?: true
@@ -200,9 +203,15 @@ abstract class GenericAssetFragment : VerticalCardGridFragment<Asset>() {
                 result.fold(
                     { Toast.makeText(requireContext(), R.string.no_items_to_play, Toast.LENGTH_SHORT).show() },
                     { stack ->
+                        // a member hidden from the grid (exclusion tag, excluded album) stays hidden in the series
+                        val members = withoutExcluded(stack.assets)
+                        if (members.isEmpty()) {
+                            Toast.makeText(requireContext(), R.string.no_items_to_play, Toast.LENGTH_SHORT).show()
+                            return@fold
+                        }
                         // the members of a stack are near-identical shots, pairing portraits would pair copies of one photo
                         sliderViewModel.configuration = buildSliderConfiguration(
-                            stack.assets.toSliderItems(keepOrder = true, mergePortrait = false)
+                            members.toSliderItems(keepOrder = true, mergePortrait = false)
                         )
                         findNavController().navigate(AlbumDetailsFragmentDirections.actionToPhotoSlider())
                     }
