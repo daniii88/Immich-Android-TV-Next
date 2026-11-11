@@ -5,7 +5,7 @@ import nl.giejay.android.tv.immich.api.model.MapMarker
 import org.junit.Test
 
 class MapPlacesTest {
-    private fun marker(id: String, lat: Double, lon: Double, city: String?, country: String? = "X") = MapMarker(id, lat, lon, city, null, country)
+    private fun marker(id: String, lat: Double, lon: Double, city: String?, country: String? = "X", state: String? = null) = MapMarker(id, lat, lon, city, state, country)
 
     @Test
     fun `photos of one city become one place at the mean position`() {
@@ -112,5 +112,34 @@ class MapPlacesTest {
         assertThat(places.map { it.city }).containsExactly("Oslo")
         assertThat(places.single().coverAssetId).isEqualTo("b") // the hidden photo is not the picture of the place
         assertThat(nl.giejay.android.tv.immich.api.withoutExcludedMarkers(markers, emptySet())).isEqualTo(markers)
+    }
+
+    @Test
+    fun `a place takes the region most of its photos name`() {
+        val places = groupCities(
+            listOf(
+                marker("a", 50.0, 8.0, "Mainz", "Germany", "Hessen"), marker("b", 50.0, 8.0, "Mainz", "Germany", "Rheinland-Pfalz"),
+                marker("c", 50.0, 8.0, "Mainz", "Germany", "Rheinland-Pfalz"), marker("d", 52.0, 13.0, "Berlin", "Germany", null),
+            )
+        )
+        assertThat(places.first { it.city == "Mainz" }.state).isEqualTo("Rheinland-Pfalz")
+        assertThat(places.first { it.city == "Berlin" }.state).isNull()
+    }
+
+    @Test
+    fun `regions group the places of a state, the one with most photos first, and leave out places without a state`() {
+        val cities = groupCities(
+            listOf(
+                marker("a", 48.1, 11.5, "Muenchen", "Germany", "Bayern"), marker("b", 48.1, 11.5, "Muenchen", "Germany", "Bayern"),
+                marker("c", 49.4, 11.1, "Nuernberg", "Germany", "Bayern"),
+                marker("d", 53.5, 10.0, "Hamburg", "Germany", "Hamburg"),
+                marker("e", 52.0, 13.0, "Berlin", "Germany", null),
+            )
+        )
+        val regions = regionsOf(cities)
+        assertThat(regions.map { it.state }).containsExactly("Bayern", "Hamburg").inOrder()
+        assertThat(regions.first().count).isEqualTo(3)
+        assertThat(regions.first().cities.map { it.city }).containsExactly("Muenchen", "Nuernberg").inOrder()
+        assertThat(regions.first().coverAssetId).isEqualTo("a")
     }
 }

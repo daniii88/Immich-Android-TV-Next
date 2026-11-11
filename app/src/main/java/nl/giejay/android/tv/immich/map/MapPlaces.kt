@@ -14,6 +14,8 @@ data class PlaceCity(
     val lon: Double,
     /** A photo of the place, for its thumbnail. */
     val coverAssetId: String,
+    /** The region (state, province) most of the photos name; null when the geocoding has none. */
+    val state: String? = null,
 )
 
 /** Cities that lie close together, drawn as one bubble on the world map. [cities] is sorted by photo count, biggest first. */
@@ -50,6 +52,7 @@ fun groupCities(markers: List<MapMarker>): List<PlaceCity> =
                 lat = group.map { it.lat }.average(),
                 lon = group.map { it.lon }.average(),
                 coverAssetId = group.first().id,
+                state = group.mapNotNull { it.state?.trim()?.ifEmpty { null } }.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key,
             )
         }
         .sortedByDescending { it.count }
@@ -122,3 +125,24 @@ fun orderByProximity(cities: List<PlaceCity>): List<PlaceCity> {
     }
     return ordered
 }
+
+/** The photos of one region (state) within a bubble: its places together, for a bubble too big to list place by place. */
+data class MapRegion(
+    val state: String,
+    val country: String?,
+    val cities: List<PlaceCity>,
+) {
+    val count: Int get() = cities.sumOf { it.count }
+    /** A photo of the biggest place, for the thumbnail. */
+    val coverAssetId: String get() = cities.first().coverAssetId
+}
+
+/**
+ * The regions of [cities], the one with the most photos first. Places without a region name are not part of any
+ * region (the geocoding does not always have one).
+ */
+fun regionsOf(cities: List<PlaceCity>): List<MapRegion> =
+    cities.filter { it.state != null }
+        .groupBy { it.state!! to it.country }
+        .map { (key, group) -> MapRegion(key.first, key.second, group.sortedByDescending { it.count }) }
+        .sortedByDescending { it.count }

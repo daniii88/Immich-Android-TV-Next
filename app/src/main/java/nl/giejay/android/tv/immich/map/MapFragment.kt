@@ -58,7 +58,7 @@ class MapFragment : Fragment() {
                     buildMapVectors(land, borders)
                 }
             }
-            MapScreen(state, landDots, vectors, zoom, onOpenCity = ::openCity)
+            MapScreen(state, landDots, vectors, zoom, onOpenCity = ::openCity, onOpenRegion = ::openRegion)
         }
     }
 
@@ -78,6 +78,12 @@ class MapFragment : Fragment() {
                 )
             }
         }
+    }
+
+    private fun openRegion(region: MapRegion) {
+        findNavController().navigate(
+            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_STATE, region.state, region.state, region.country),
+        )
     }
 
     private fun openCity(place: PlaceCity) {

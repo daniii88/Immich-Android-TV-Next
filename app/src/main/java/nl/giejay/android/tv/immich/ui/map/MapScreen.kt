@@ -86,12 +86,14 @@ import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.api.util.ApiUtil
 import nl.giejay.android.tv.immich.card.Card
 import nl.giejay.android.tv.immich.map.MapCluster
+import nl.giejay.android.tv.immich.map.MapRegion
 import nl.giejay.android.tv.immich.map.MapViewport
 import nl.giejay.android.tv.immich.map.PlaceCity
 import nl.giejay.android.tv.immich.map.WorldDots
 import nl.giejay.android.tv.immich.map.canZoomInto
 import nl.giejay.android.tv.immich.map.clustersFor
 import nl.giejay.android.tv.immich.map.orderByProximity
+import nl.giejay.android.tv.immich.map.regionsOf
 import nl.giejay.android.tv.immich.map.viewportFor
 import nl.giejay.android.tv.immich.ui.card.ImmichFocusableCard
 import nl.giejay.android.tv.immich.ui.theme.ImmichFocus
@@ -156,6 +158,7 @@ fun MapScreen(
     vectors: MapVectors?,
     zoom: MapZoomState,
     onOpenCity: (PlaceCity) -> Unit,
+    onOpenRegion: (MapRegion) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -173,7 +176,7 @@ fun MapScreen(
             MapUiState.Loading -> Message(stringResource(R.string.info_loading))
             MapUiState.Empty -> Message(stringResource(R.string.map_empty))
             is MapUiState.Failed -> Message(state.message)
-            is MapUiState.Ready -> MapContent(state.cities, landDots, vectors, zoom, onOpenCity)
+            is MapUiState.Ready -> MapContent(state.cities, landDots, vectors, zoom, onOpenCity, onOpenRegion)
         }
     }
 }
@@ -198,6 +201,7 @@ private fun MapContent(
     vectors: MapVectors?,
     zoom: MapZoomState,
     onOpenCity: (PlaceCity) -> Unit,
+    onOpenRegion: (MapRegion) -> Unit,
 ) {
     val viewport = zoom.viewport
     val clusters = remember(cities, viewport) { clustersFor(cities, viewport) }
@@ -272,7 +276,7 @@ private fun MapContent(
                 modifier = Modifier.size(width, width / WorldDots.ASPECT),
             )
         }
-        PlaceCards(focused, firstCard, onOpenCity)
+        PlaceCards(focused, firstCard, onOpenCity, onOpenRegion)
     }
 }
 
@@ -522,33 +526,57 @@ private fun MapBubble(
 }
 
 @Composable
-private fun PlaceCards(cluster: MapCluster, firstCard: FocusRequester, onOpenCity: (PlaceCity) -> Unit) {
+private fun PlaceCards(
+    cluster: MapCluster,
+    firstCard: FocusRequester,
+    onOpenCity: (PlaceCity) -> Unit,
+    onOpenRegion: (MapRegion) -> Unit,
+) {
     val context = LocalContext.current
     Crossfade(targetState = cluster, label = "placeCards") { shown ->
-        val more = shown.cities.size - MAX_CARDS
+        // a bubble with too many places for the cards shows its regions (states) instead, as long as it has several
+        val regions = remember(shown) { if (shown.cities.size > MAX_CARDS) regionsOf(shown.cities) else emptyList() }
+        val byRegion = regions.size >= 2
+        val total = if (byRegion) regions.size else shown.cities.size
+        val more = total - MAX_CARDS
         val cards = remember(shown) {
-            // the biggest places of a large bubble, as a walk through the neighbourhood
-            orderByProximity(shown.cities.take(MAX_CARDS)).map { city ->
-                city to Card(
-                    title = city.city,
-                    description = listOfNotNull(
-                        city.country,
-                        context.resources.getQuantityString(R.plurals.map_photos, city.count, city.count),
-                    ).joinToString(" · "),
-                    id = city.city,
-                    thumbnailUrl = ApiUtil.getThumbnailUrl(city.coverAssetId, "thumbnail"),
-                    backgroundUrl = null,
-                )
+            if (byRegion) {
+                regions.take(MAX_CARDS).map { region ->
+                    Card(
+                        title = region.state,
+                        description = listOfNotNull(
+                            context.resources.getQuantityString(R.plurals.map_group_places, region.cities.size, region.cities.size),
+                            context.resources.getQuantityString(R.plurals.map_photos, region.count, region.count),
+                        ).joinToString(" · "),
+                        id = region.state,
+                        thumbnailUrl = ApiUtil.getThumbnailUrl(region.coverAssetId, "thumbnail"),
+                        backgroundUrl = null,
+                    ) to { onOpenRegion(region) }
+                }
+            } else {
+                // the biggest places of a large bubble, as a walk through the neighbourhood
+                orderByProximity(shown.cities.take(MAX_CARDS)).map { city ->
+                    Card(
+                        title = city.city,
+                        description = listOfNotNull(
+                            city.country,
+                            context.resources.getQuantityString(R.plurals.map_photos, city.count, city.count),
+                        ).joinToString(" · "),
+                        id = city.city,
+                        thumbnailUrl = ApiUtil.getThumbnailUrl(city.coverAssetId, "thumbnail"),
+                        backgroundUrl = null,
+                    ) to { onOpenCity(city) }
+                }
             }
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().focusGroup(),
         ) {
-            itemsIndexed(cards) { index, (city, card) ->
+            itemsIndexed(cards) { index, (card, open) ->
                 ImmichFocusableCard(
                     card = card,
-                    onClick = { onOpenCity(city) },
+                    onClick = open,
                     onFocused = {},
                     modifier = if (index == 0) Modifier.focusRequester(firstCard) else Modifier,
                 )
