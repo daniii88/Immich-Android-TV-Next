@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.zIndex
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -83,6 +85,7 @@ import nl.giejay.android.tv.immich.map.WorldDots
 import nl.giejay.android.tv.immich.map.contents
 import nl.giejay.android.tv.immich.map.viewportFor
 import nl.giejay.android.tv.immich.ui.card.ImmichFocusableCard
+import nl.giejay.android.tv.immich.ui.theme.ImmichFocus
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -494,14 +497,15 @@ private fun WorldMap(
 }
 
 /**
- * A photo standing on its place: a rounded picture with a white frame whose bottom tip sits on the spot. The pin of the
- * focused card is larger, framed in the accent colour and named underneath.
+ * A photo standing on its place: a rounded picture with a white frame whose tip ends in a small white spot on the
+ * place. Frame and tip stay white (with a dark edge) so they stand out from the accent-coloured dots under them; the pin
+ * of the focused card is larger, gets an accent ring inside the frame and is named underneath.
  */
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: () -> MapViewport, mapWidth: Dp, mapHeight: Dp) {
     val pinSize = if (focused) PIN_SIZE * PIN_FOCUS_SCALE else PIN_SIZE
-    val frame = if (focused) MaterialTheme.colorScheme.primary else Color.White
+    val frame = Color.White
     val tip = PIN_TIP
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -524,13 +528,17 @@ private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: ()
             Modifier
                 .size(pinSize)
                 .background(frame, RoundedCornerShape(12.dp))
-                .padding(if (focused) 4.dp else 3.dp),
+                .border(1.dp, PIN_EDGE, RoundedCornerShape(12.dp))
+                .padding(3.dp),
         ) {
             GlideImage(
                 model = ApiUtil.getThumbnailUrl(pin.coverAssetId, "thumbnail"),
                 contentDescription = pin.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp)),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(9.dp))
+                    .then(if (focused) Modifier.border(ImmichFocus.BorderWidth, MaterialTheme.colorScheme.border, RoundedCornerShape(9.dp)) else Modifier),
             )
         }
         if (!below) PinTip(pointsUp = false, frame)
@@ -550,29 +558,40 @@ private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: ()
     }
 }
 
-/** The little triangle between a pin's photo and its place. */
+/**
+ * The little triangle between a pin's photo and its place, with a dark edge on its slanted sides and a white spot with
+ * a dark ring right on the place, so it reads against the bright dots there.
+ */
 @Composable
 private fun PinTip(pointsUp: Boolean, color: Color) {
     Canvas(Modifier.size(PIN_TIP * 2, PIN_TIP)) {
-        val path = Path().apply {
-            if (pointsUp) {
-                moveTo(0f, size.height)
-                lineTo(size.width, size.height)
-                lineTo(size.width / 2, 0f)
-            } else {
-                moveTo(0f, 0f)
-                lineTo(size.width, 0f)
-                lineTo(size.width / 2, size.height)
-            }
+        val base = if (pointsUp) size.height else 0f
+        val point = Offset(size.width / 2, if (pointsUp) 0f else size.height)
+        val fill = Path().apply {
+            moveTo(0f, base)
+            lineTo(size.width, base)
+            lineTo(point.x, point.y)
             close()
         }
-        drawPath(path, color)
+        val edge = Path().apply {
+            moveTo(0f, base)
+            lineTo(point.x, point.y)
+            lineTo(size.width, base)
+        }
+        drawPath(fill, color)
+        drawPath(edge, PIN_EDGE, style = Stroke(width = 1.dp.toPx()))
+        // drawn past the canvas on purpose: the spot is centred on the place
+        drawCircle(PIN_EDGE, radius = 4.5.dp.toPx(), center = point)
+        drawCircle(color, radius = 3.dp.toPx(), center = point)
     }
 }
 
 private val PIN_SIZE = 52.dp
 private const val PIN_FOCUS_SCALE = 1.35f
-private val PIN_TIP = 7.dp
+private val PIN_TIP = 9.dp
+
+/** The dark edge of a pin, so its white frame and tip stand out from the bright dots and glows under them. */
+private val PIN_EDGE = Color(0xB3101418)
 private const val MAX_PINS = 12
 
 /** The dot picture of one view of the map. */
