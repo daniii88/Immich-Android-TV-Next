@@ -49,6 +49,9 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlin.math.abs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.compositeOver
@@ -322,7 +325,7 @@ private fun WorldMap(
         // The dots of the view the map is heading for, finished off the main thread. While the view glides there, the
         // previous picture is moved and scaled to fit (pixel-sharp, no smoothing) and then swapped for the fine one:
         // rasterising the coastlines in every frame of the glide was far too slow for a TV box.
-        val dotsLayer by produceState<DotsLayer?>(null, landDotsFromVectors, viewport, widthPx, heightPx) {
+        val readyLayer by produceState<DotsLayer?>(null, landDotsFromVectors, viewport, widthPx, heightPx) {
             val dots = landDotsFromVectors ?: return@produceState
             if (widthPx < 1 || heightPx < 1) return@produceState
             val (step, dot) = dotPixels(dotStep(widthPx.toFloat() / WorldDots.COLS, viewport.width))
@@ -331,6 +334,21 @@ private fun WorldMap(
             value = withContext(Dispatchers.Default) {
                 DotsLayer(viewport, dots.render(viewport, widthPx, heightPx, step, dot, land, border).asImageBitmap())
             }
+        }
+        // The picture on screen. A finished one that covers the old one (zooming out, or the first) takes over at once;
+        // one for a smaller view (zooming in) waits until the glide has arrived, else the margins it does not cover
+        // would go blank while the view is still wider.
+        var dotsLayer by remember { mutableStateOf<DotsLayer?>(null) }
+        LaunchedEffect(readyLayer) {
+            val next = readyLayer ?: return@LaunchedEffect
+            val old = dotsLayer
+            if (old != null && !next.view.covers(old.view)) {
+                snapshotFlow {
+                    abs(lonMin.value - next.view.lonMin) < 1e-3 && abs(lonMax.value - next.view.lonMax) < 1e-3 &&
+                        abs(latTop.value - next.view.latTop) < 1e-3 && abs(latBottom.value - next.view.latBottom) < 1e-3
+                }.first { it }
+            }
+            dotsLayer = next
         }
         Canvas(Modifier.fillMaxSize()) {
             val shown = shownView()
@@ -586,5 +604,8 @@ internal fun formatCount(count: Int): String = when {
 private const val MAX_CARDS = 40
 /** The dot picture of one view of the map. */
 private class DotsLayer(val view: MapViewport, val image: ImageBitmap)
+
+internal fun MapViewport.covers(other: MapViewport, eps: Double = 1e-6): Boolean =
+    lonMin <= other.lonMin + eps && lonMax >= other.lonMax - eps && latTop >= other.latTop - eps && latBottom <= other.latBottom + eps
 
 private const val ZOOM_MILLIS = 450
