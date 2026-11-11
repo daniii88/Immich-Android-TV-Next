@@ -368,7 +368,11 @@ private fun MapContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusProperties { enter = { requester } }
+                // back into the row (from the side navigation): the last focused card, when it is composed; otherwise
+                // the default entry, as a requester of a card scrolled out of the row is not attached
+                .focusProperties {
+                    enter = { if (listState.layoutInfo.visibleItemsInfo.any { it.index == focused }) requester else FocusRequester.Default }
+                }
                 .focusGroup(),
         ) {
             itemsIndexed(entries, key = { _, it -> it.card.id }) { index, item ->
@@ -376,7 +380,7 @@ private fun MapContent(
                     card = item.card,
                     onClick = item.open,
                     onFocused = { focused = index },
-                    modifier = if (index == start) Modifier.focusRequester(requester) else Modifier,
+                    modifier = if (index == focused) Modifier.focusRequester(requester) else Modifier,
                 )
             }
         }
