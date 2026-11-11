@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,12 +28,14 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.zIndex
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import nl.giejay.android.tv.immich.map.MapPin
 import nl.giejay.android.tv.immich.map.PinSize
 import nl.giejay.android.tv.immich.map.choosePins
+import nl.giejay.android.tv.immich.map.pinPhotoLeft
 import nl.giejay.android.tv.immich.map.hangsBelow
 import nl.giejay.android.tv.immich.map.pin
 import androidx.compose.runtime.mutableIntStateOf
@@ -60,7 +62,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -316,9 +317,12 @@ private fun MapContent(
     val pins = remember(level, data) { pinsOf(level, data) }
     val requester = remember(level) { FocusRequester() }
     val start = remember(level) { levels.focusIndex.coerceIn(0, (entries.size - 1).coerceAtLeast(0)) }
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = start)
+    // a new row per level, starting at its card: the old scroll position must not carry over, or the card to focus may
+    // not be composed and its requester would not be attached
+    val listState = remember(level) { LazyListState(firstVisibleItemIndex = start) }
     LaunchedEffect(levels.changes) {
         if (levels.changes == 0) return@LaunchedEffect
+        listState.scrollToItem(start)
         withFrameNanos { }
         requester.runCatching { requestFocus() }
     }
@@ -506,54 +510,62 @@ private fun WorldMap(
 private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: () -> MapViewport, mapWidth: Dp, mapHeight: Dp) {
     val pinSize = if (focused) PIN_SIZE * PIN_FOCUS_SCALE else PIN_SIZE
     val frame = Color.White
-    val tip = PIN_TIP
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .zIndex(if (focused) 1f else 0f)
-            .layout { measurable, constraints ->
-                val placeable = measurable.measure(Constraints())
-                val view = viewport()
-                // the tip of the frame on the place, kept inside the map sideways
-                val x = (mapWidth.toPx() * view.x(pin.lon) - placeable.width / 2f).roundToInt()
-                    .coerceIn(0, (mapWidth.roundToPx() - placeable.width).coerceAtLeast(0))
-                val spot = (mapHeight.toPx() * view.y(pin.lat)).roundToInt()
-                val y = if (below) spot else spot - (pinSize + tip).roundToPx()
-                layout(constraints.minWidth, constraints.minHeight) { placeable.place(x, y) }
-            },
-    ) {
-        // the tip pointing at the place: under the photo, or above it when the photo hangs below its place
-        if (below) PinTip(pointsUp = true, frame)
-        Box(
-            Modifier
-                .size(pinSize)
-                .background(frame, RoundedCornerShape(12.dp))
-                .border(1.dp, PIN_EDGE, RoundedCornerShape(12.dp))
-                .padding(3.dp),
-        ) {
-            GlideImage(
-                model = ApiUtil.getThumbnailUrl(pin.coverAssetId, "thumbnail"),
-                contentDescription = pin.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(9.dp))
-                    .then(if (focused) Modifier.border(ImmichFocus.BorderWidth, MaterialTheme.colorScheme.border, RoundedCornerShape(9.dp)) else Modifier),
-            )
-        }
-        if (!below) PinTip(pointsUp = false, frame)
-        if (focused) {
-            Text(
-                text = pin.name,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-            )
+    Layout(
+        content = {
+            // the tip pointing at the place: under the photo, or above it when the photo hangs below its place
+            PinTip(pointsUp = below, frame)
+            Box(
+                Modifier
+                    .size(pinSize)
+                    .background(frame, RoundedCornerShape(PIN_CORNER))
+                    .border(1.dp, PIN_EDGE, RoundedCornerShape(PIN_CORNER))
+                    .padding(3.dp),
+            ) {
+                GlideImage(
+                    model = ApiUtil.getThumbnailUrl(pin.coverAssetId, "thumbnail"),
+                    contentDescription = pin.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(9.dp))
+                        .then(if (focused) Modifier.border(ImmichFocus.BorderWidth, MaterialTheme.colorScheme.border, RoundedCornerShape(9.dp)) else Modifier),
+                )
+            }
+            if (focused) {
+                Text(
+                    text = pin.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
+        },
+        modifier = Modifier.zIndex(if (focused) 1f else 0f),
+    ) { measurables, constraints ->
+        val tip = measurables[0].measure(Constraints())
+        val photo = measurables[1].measure(Constraints())
+        val label = measurables.getOrNull(2)?.measure(Constraints())
+        val view = viewport()
+        val mapW = mapWidth.toPx()
+        val spotX = mapW * view.x(pin.lon)
+        val spotY = (mapHeight.toPx() * view.y(pin.lat)).roundToInt()
+        // the tip stays on the place; only the photo (and the name) move to stay inside the map near its edges
+        val photoX = pinPhotoLeft(spotX, photo.width.toFloat(), mapW, tip.width / 2f, PIN_CORNER.toPx()).roundToInt()
+        val photoY = if (below) spotY + tip.height else spotY - tip.height - photo.height
+        val tipY = if (below) spotY else spotY - tip.height
+        val labelY = if (below) photoY + photo.height else spotY
+        layout(constraints.minWidth, constraints.minHeight) {
+            tip.place((spotX - tip.width / 2f).roundToInt(), tipY)
+            photo.place(photoX, photoY)
+            label?.let {
+                val x = (photoX + photo.width / 2f - it.width / 2f).roundToInt().coerceIn(0, (mapW.roundToInt() - it.width).coerceAtLeast(0))
+                it.place(x, labelY)
+            }
         }
     }
 }
@@ -589,6 +601,7 @@ private fun PinTip(pointsUp: Boolean, color: Color) {
 private val PIN_SIZE = 52.dp
 private const val PIN_FOCUS_SCALE = 1.35f
 private val PIN_TIP = 9.dp
+private val PIN_CORNER = 12.dp
 
 /** The dark edge of a pin, so its white frame and tip stand out from the bright dots and glows under them. */
 private val PIN_EDGE = Color(0xB3101418)

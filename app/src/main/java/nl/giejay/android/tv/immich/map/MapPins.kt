@@ -56,3 +56,14 @@ fun PlaceCountry.pin() = MapPin("country|$name", cities.first().lat, cities.firs
 fun MapRegion.pin() = MapPin("region|$state", cities.first().lat, cities.first().lon, coverAssetId, state, count)
 
 fun PlaceCity.pin() = MapPin("city|$city|$country", lat, lon, coverAssetId, city, count)
+
+/**
+ * Where a pin's photo of [photoPx] starts on a map of [mapWidthPx] when its tip (half as wide as [tipHalfPx]) is on the
+ * place at [spotXPx]: centred over the place, moved inside the map near its edges, but never so far that the tip
+ * leaves the straight part of the photo's edge (past its corner of [cornerPx]). The tip itself never moves.
+ */
+fun pinPhotoLeft(spotXPx: Float, photoPx: Float, mapWidthPx: Float, tipHalfPx: Float, cornerPx: Float): Float {
+    val inMap = (spotXPx - photoPx / 2).coerceIn(0f, (mapWidthPx - photoPx).coerceAtLeast(0f))
+    val reach = (photoPx / 2 - tipHalfPx - cornerPx).coerceAtLeast(0f)
+    return inMap.coerceIn(spotXPx - photoPx / 2 - reach, spotXPx - photoPx / 2 + reach)
+}

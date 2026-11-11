@@ -54,4 +54,19 @@ class MapPinsTest {
         assertThat(choosePins(pins, "focused", view, 1000f, 500f, size, 10).map { it.key }).containsExactly("focused", "below")
         assertThat(choosePins(pins, "focused", view, 1000f, 500f, named, 10).map { it.key }).containsExactly("focused")
     }
+
+    @Test
+    fun photoIsCentredOverItsPlaceAwayFromTheEdges() {
+        assertThat(pinPhotoLeft(500f, 60f, 1000f, 9f, 12f)).isEqualTo(470f)
+    }
+
+    @Test
+    fun photoMovesInsideTheMapButKeepsTheTipUnderIt() {
+        // near the left edge: moved right, but only until the tip reaches the straight part of the photo's edge
+        assertThat(pinPhotoLeft(25f, 60f, 1000f, 9f, 12f)).isEqualTo(0f)
+        assertThat(pinPhotoLeft(5f, 60f, 1000f, 9f, 12f)).isEqualTo(-16f)
+        // near the right edge the same, the other way
+        assertThat(pinPhotoLeft(975f, 60f, 1000f, 9f, 12f)).isEqualTo(940f)
+        assertThat(pinPhotoLeft(995f, 60f, 1000f, 9f, 12f)).isEqualTo(956f)
+    }
 }
