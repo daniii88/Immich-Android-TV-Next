@@ -269,8 +269,6 @@ private fun MapContent(
                         else -> firstCard.runCatching { requestFocus() }
                     }
                 },
-                onZoomIn = zoomIn,
-                onZoomOut = zoomOut,
                 modifier = Modifier.size(width, width / WorldDots.ASPECT),
             )
         }
@@ -291,8 +289,6 @@ private fun WorldMap(
     entry: FocusRequester,
     onFocused: (MapCluster) -> Unit,
     onOpen: (MapCluster) -> Unit,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dotColor = MaterialTheme.colorScheme.onSurface
@@ -411,13 +407,6 @@ private fun WorldMap(
                 mapHeight = mapHeight,
             )
         }
-        Row(
-            Modifier.align(Alignment.TopEnd).padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ZoomButton("−", stringResource(R.string.map_zoom_out), onZoomOut)
-            ZoomButton("+", stringResource(R.string.map_zoom_in), onZoomIn)
-        }
         if (zoomed) {
             Text(
                 text = stringResource(R.string.map_zoom_out_hint),
@@ -430,30 +419,6 @@ private fun WorldMap(
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
-    }
-}
-
-/** A small round zoom button; the same as the zoom keys, for remotes without them. */
-@Composable
-private fun ZoomButton(symbol: String, description: String, onClick: () -> Unit) {
-    var hasFocus by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .size(40.dp)
-            .background(
-                if (hasFocus) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                CircleShape,
-            )
-            .semantics { contentDescription = description }
-            .onFocusChanged { hasFocus = it.isFocused }
-            .clickable(interactionSource = null, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = symbol,
-            style = MaterialTheme.typography.titleLarge,
-            color = if (hasFocus) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 
