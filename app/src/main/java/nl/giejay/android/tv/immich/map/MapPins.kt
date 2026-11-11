@@ -51,11 +51,11 @@ fun choosePins(
 fun hangsBelow(yPx: Float, photoPx: Float, tipPx: Float): Boolean = yPx < photoPx + tipPx + 8f
 
 /** The pin of a country: its picture at its place with the most photos (a real place, not a middle that may lie in the sea). */
-fun PlaceCountry.pin() = MapPin("country|$name", cities.first().lat, cities.first().lon, coverAssetId, name, count)
+fun PlaceCountry.pin() = MapPin("country|$name", lat, lon, coverAssetId, name, count)
 
 fun MapRegion.pin() = MapPin("region|$state", cities.first().lat, cities.first().lon, coverAssetId, state, count)
 
-fun PlaceCity.pin() = MapPin("city|$city|$country", lat, lon, coverAssetId, city, count)
+fun PlaceCity.pin() = MapPin(key, lat, lon, coverAssetId, city, count)
 
 /**
  * Where a pin's photo of [photoPx] starts on a map of [mapWidthPx] when its tip (half as wide as [tipHalfPx]) is on the

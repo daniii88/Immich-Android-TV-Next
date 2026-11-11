@@ -75,7 +75,7 @@ class MapFragment : Fragment() {
                     { markers ->
                         val cities = groupCities(markers)
                         if (markers.isEmpty()) MapUiState.Empty
-                        else MapUiState.Ready(MapData(cities, countriesOf(cities), MapFootprint.of(markers)))
+                        else MapUiState.Ready(MapData(cities, countriesOf(markers, cities), MapFootprint.of(markers)))
                     },
                 )
             }
@@ -96,7 +96,7 @@ class MapFragment : Fragment() {
 
     private fun openCity(place: PlaceCity) {
         findNavController().navigate(
-            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_CITY, place.city, place.city, place.country),
+            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_CITY, place.city, place.city, place.country, place.state),
         )
     }
 }

@@ -39,7 +39,7 @@ class MapHugeLibraryTest {
         val cities = groupCities(markers)
         val groupMs = (System.nanoTime() - t) / 1_000_000
         t = System.nanoTime()
-        val countries = countriesOf(cities)
+        val countries = countriesOf(markers, cities)
         val footprint = MapFootprint.of(markers)
         val prepareMs = (System.nanoTime() - t) / 1_000_000
         t = System.nanoTime()

@@ -225,11 +225,14 @@ private fun Resources.places(n: Int) = getQuantityString(R.plurals.map_group_pla
 private fun Resources.photos(n: Int) = getQuantityString(R.plurals.map_photos, n, n)
 private fun Resources.countries(n: Int) = getQuantityString(R.plurals.map_countries, n, n)
 
+/** "N places · N photos", or just the photos when none of them has a place name. */
+private fun Resources.placesAndPhotos(places: Int, photos: Int) = if (places == 0) photos(photos) else places(places) + " · " + photos(photos)
+
 private fun card(id: String, title: String, description: String, coverAssetId: String) =
     Card(title = title, description = description, id = id, thumbnailUrl = ApiUtil.getThumbnailUrl(coverAssetId, "thumbnail"), backgroundUrl = null)
 
 private fun placeEntry(res: Resources, city: PlaceCity, withRegion: Boolean, onOpenCity: (PlaceCity) -> Unit) = MapEntry(
-    card = card("city|${city.city}", city.city, listOfNotNull(city.state.takeIf { withRegion }, res.photos(city.count)).joinToString(" · "), city.coverAssetId),
+    card = card(city.key, city.city, listOfNotNull(city.state.takeIf { withRegion }, res.photos(city.count)).joinToString(" · "), city.coverAssetId),
     highlight = city.country,
     pinKey = city.pin().key,
     open = { onOpenCity(city) },
@@ -246,7 +249,7 @@ private fun entriesFor(
 ): List<MapEntry> = when (level) {
     MapLevel.World -> data.countries.mapIndexed { index, country ->
         MapEntry(
-            card = card("country|${country.name}", country.name, res.places(country.cities.size) + " · " + res.photos(country.count), country.coverAssetId),
+            card = card("country|${country.name}", country.name, res.placesAndPhotos(country.cities.size, country.count), country.coverAssetId),
             highlight = country.name,
             pinKey = country.pin().key,
             open = { levels.open(MapLevel.Country(country), index) },
@@ -263,7 +266,7 @@ private fun entriesFor(
         )
         val regions = contents.regions.mapIndexed { index, region ->
             MapEntry(
-                card = card("region|${region.state}", region.state, res.places(region.cities.size) + " · " + res.photos(region.count), region.coverAssetId),
+                card = card("region|${region.state}", region.state, res.placesAndPhotos(region.cities.size, region.count), region.coverAssetId),
                 highlight = country.name,
                 pinKey = region.pin().key,
                 // the card index in the row: "all photos" comes first
@@ -291,10 +294,17 @@ private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) 
     is MapLevel.Region -> level.region.cities.map { it.pin() }
 }
 
-/** The part of the world the map shows on a level: the whole world, or the places of the country / region framed. */
+/**
+ * The part of the world the map shows on a level: the whole world, or the places of the country / region framed (a
+ * country without named places around its photo).
+ */
 private fun viewportOf(level: MapLevel): MapViewport = when (level) {
     MapLevel.World -> MapViewport.WORLD
-    is MapLevel.Country -> viewportFor(level.country.cities)
+    is MapLevel.Country -> if (level.country.cities.isEmpty()) {
+        MapViewport.around(level.country.lat, level.country.lon, MapViewport.MIN_WIDTH_DEGREES)
+    } else {
+        viewportFor(level.country.cities)
+    }
     is MapLevel.Region -> viewportFor(level.region.cities)
 }
 
@@ -332,7 +342,7 @@ private fun MapContent(
             stringResource(R.string.map),
             listOf(res.countries(data.countries.size), res.places(data.cities.size), res.photos(data.photoCount)).joinToString(" · "),
         )
-        is MapLevel.Country -> Title(level.country.name, res.places(level.country.cities.size) + " · " + res.photos(level.country.count))
+        is MapLevel.Country -> Title(level.country.name, res.placesAndPhotos(level.country.cities.size, level.country.count))
         is MapLevel.Region -> Title(
             level.region.state,
             listOf(level.country.name, res.places(level.region.cities.size), res.photos(level.region.count)).joinToString(" · "),

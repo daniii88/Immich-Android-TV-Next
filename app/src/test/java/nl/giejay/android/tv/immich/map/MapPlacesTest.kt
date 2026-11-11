@@ -41,14 +41,16 @@ class MapPlacesTest {
     }
 
     @Test
-    fun `a place takes the region most of its photos name`() {
+    fun `the same city name in two regions of one country stays two places, each in its region`() {
         val places = groupCities(
             listOf(
-                marker("a", 50.0, 8.0, "Mainz", "Germany", "Hessen"), marker("b", 50.0, 8.0, "Mainz", "Germany", "Rheinland-Pfalz"),
-                marker("c", 50.0, 8.0, "Mainz", "Germany", "Rheinland-Pfalz"), marker("d", 52.0, 13.0, "Berlin", "Germany", null),
+                marker("a", 45.5, -122.7, "Portland", "USA", "Oregon"), marker("b", 45.5, -122.7, "Portland", "USA", "Oregon"),
+                marker("c", 43.7, -70.3, "Portland", "USA", "Maine"), marker("d", 52.0, 13.0, "Berlin", "Germany", null),
             )
         )
-        assertThat(places.first { it.city == "Mainz" }.state).isEqualTo("Rheinland-Pfalz")
+        assertThat(places.filter { it.city == "Portland" }.map { it.state to it.count }).containsExactly("Oregon" to 2, "Maine" to 1).inOrder()
+        assertThat(places.filter { it.city == "Portland" }.map { it.key }.toSet()).hasSize(2)
+        assertThat(regionsOf(places).map { it.state to it.count }).containsExactly("Oregon" to 2, "Maine" to 1).inOrder()
         assertThat(places.first { it.city == "Berlin" }.state).isNull()
     }
 
@@ -72,13 +74,43 @@ class MapPlacesTest {
 
     @Test
     fun `countries group their places, the most photographed country and place first`() {
-        val countries = countriesOf(
-            listOf(place("Paris", "France", null, 3), place("Berlin", "Germany", null, 2), place("Hamburg", "Germany", null, 4), place("Nowhere", null, null, 9))
+        val markers = listOf(
+            marker("p1", 48.9, 2.3, "Paris", "France"), marker("p2", 48.9, 2.3, "Paris", "France"), marker("p3", 48.9, 2.3, "Paris", "France"),
+            marker("b1", 52.5, 13.4, "Berlin", "Germany"), marker("b2", 52.5, 13.4, "Berlin", "Germany"),
+            marker("h1", 53.5, 10.0, "Hamburg", "Germany"), marker("h2", 53.5, 10.0, "Hamburg", "Germany"), marker("h3", 53.5, 10.0, "Hamburg", "Germany"),
+            marker("n1", 0.0, 0.0, "Nowhere", null),
         )
+        val countries = countriesOf(markers, groupCities(markers))
         assertThat(countries.map { it.name }).containsExactly("Germany", "France").inOrder()
-        assertThat(countries.first().count).isEqualTo(6)
+        assertThat(countries.first().count).isEqualTo(5)
         assertThat(countries.first().cities.map { it.city }).containsExactly("Hamburg", "Berlin").inOrder()
-        assertThat(countries.first().coverAssetId).isEqualTo("Hamburg")
+        assertThat(countries.first().coverAssetId).isEqualTo("h1")
+        assertThat(countries.first().lat).isWithin(1e-9).of(53.5)
+    }
+
+    @Test
+    fun `photos with a country but no place name count for their country and region, and make a country of their own`() {
+        val markers = listOf(
+            marker("a", 64.1, -21.9, null, "Iceland"), marker("b", 64.2, -21.8, " ", "Iceland"),
+            marker("c", 48.1, 11.5, "Muenchen", "Germany", "Bayern"), marker("d", 47.6, 12.0, null, "Germany", "Bayern"),
+        )
+        val countries = countriesOf(markers, groupCities(markers))
+        val iceland = countries.first { it.name == "Iceland" }
+        assertThat(iceland.cities).isEmpty()
+        assertThat(iceland.count).isEqualTo(2)
+        assertThat(iceland.coverAssetId).isEqualTo("a")
+        assertThat(iceland.pin().lat).isWithin(1e-9).of(64.1)
+        assertThat(iceland.contents().places).isEmpty()
+        val germany = countries.first { it.name == "Germany" }
+        assertThat(germany.count).isEqualTo(2)
+        assertThat(germany.stateCounts).containsExactly("Bayern", 2)
+    }
+
+    @Test
+    fun `a region of a big country counts its photos without a place name too`() {
+        val cities = (0..REGIONS_FROM_PLACES).map { place("Ort $it", "Germany", if (it % 2 == 0) "Bayern" else "Hessen", 1) }
+        val country = PlaceCountry("Germany", cities, count = cities.size + 10, stateCounts = mapOf("Bayern" to 22, "Hessen" to 13))
+        assertThat(country.contents().regions.map { it.state to it.count }).containsExactly("Bayern" to 22, "Hessen" to 13).inOrder()
     }
 
     @Test

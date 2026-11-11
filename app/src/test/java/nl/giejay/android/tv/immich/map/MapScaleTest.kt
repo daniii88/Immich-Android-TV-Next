@@ -22,7 +22,7 @@ class MapScaleTest {
     fun `thousands of photos in one country become one country card, its regions, and lit dots, quickly`() {
         val start = System.nanoTime()
         val cities = groupCities(markers)
-        val countries = countriesOf(cities)
+        val countries = countriesOf(markers, cities)
         val contents = countries.single().contents()
         val footprint = MapFootprint.of(markers)
         val cells = footprintCells(footprint, MapViewport.WORLD, 400, 160, highlight = "Germany")
