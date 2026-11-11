@@ -60,24 +60,39 @@ fun groupCities(markers: List<MapMarker>): List<PlaceCity> =
  * of its cities. (A grid would split neighbours that happen to lie on either side of a cell border.)
  */
 fun clusterCities(cities: List<PlaceCity>, radiusDegrees: Double = MAP_CLUSTER_RADIUS_DEGREES): List<MapCluster> {
-    val groups = mutableListOf<MutableList<PlaceCity>>()
+    val groups = mutableListOf<CityGroup>()
     for (city in cities.sortedByDescending { it.count }) {
-        val group = groups.firstOrNull { distanceDegrees(centre(it), city.lat to city.lon) <= radiusDegrees }
-        if (group != null) group += city else groups += mutableListOf(city)
+        val group = groups.firstOrNull { distanceDegrees(it.centre(), city.lat to city.lon) <= radiusDegrees }
+        if (group != null) group.add(city) else groups += CityGroup(city)
     }
     return groups.map { group ->
-        val (lat, lon) = centre(group)
-        MapCluster(lat = lat, lon = lon, count = group.sumOf { it.count }, cities = group)
+        val (lat, lon) = group.centre()
+        MapCluster(lat = lat, lon = lon, count = group.count, cities = group.cities)
     }.sortedByDescending { it.count }
 }
 
-private fun centre(group: List<PlaceCity>): Pair<Double, Double> {
-    val total = group.sumOf { it.count }
-    // longitudes are averaged as offsets from the first city, so places on either side of the date line (179 and -179)
-    // average to 180 and not to 0
-    val reference = group.first().lon
-    val offset = group.sumOf { wrapDegrees(it.lon - reference) * it.count } / total
-    return group.sumOf { it.lat * it.count } / total to wrapDegrees(reference + offset)
+/**
+ * The cities of a growing bubble with their photo-weighted centre kept as running sums, so that testing a city against
+ * a bubble costs the same however many cities it holds (recomputing the centre each time made a library with
+ * thousands of places quadratic). Longitudes are summed as offsets from the first city, so places on either side of the
+ * date line (179 and -179) average to 180 and not to 0.
+ */
+private class CityGroup(first: PlaceCity) {
+    val cities = mutableListOf(first)
+    var count = first.count
+        private set
+    private val reference = first.lon
+    private var latSum = first.lat * first.count
+    private var lonOffsetSum = 0.0 // wrapDegrees(first.lon - reference) is 0
+
+    fun add(city: PlaceCity) {
+        cities += city
+        count += city.count
+        latSum += city.lat * city.count
+        lonOffsetSum += wrapDegrees(city.lon - reference) * city.count
+    }
+
+    fun centre(): Pair<Double, Double> = latSum / count to wrapDegrees(reference + lonOffsetSum / count)
 }
 
 /** Into [-180, 180). */
