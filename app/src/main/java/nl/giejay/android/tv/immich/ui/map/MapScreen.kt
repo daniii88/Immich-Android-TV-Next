@@ -51,6 +51,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -306,7 +307,8 @@ private fun WorldMap(
     BoxWithConstraints(
         modifier
             .clip(RoundedCornerShape(28.dp))
-            .background(Brush.verticalGradient(listOf(surfaceVariant.copy(alpha = 0.55f), surface)))
+            // flat, not a gradient: a gradient over the whole map cost a quarter of the GPU time of a frame on a TV box
+            .background(surfaceVariant.copy(alpha = 0.28f).compositeOver(surface))
             .focusGroup(),
     ) {
         val mapWidth = maxWidth
