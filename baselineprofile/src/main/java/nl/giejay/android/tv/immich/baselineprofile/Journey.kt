@@ -1,5 +1,6 @@
 package nl.giejay.android.tv.immich.baselineprofile
 
+import android.view.KeyEvent
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -157,4 +158,21 @@ internal fun MacrobenchmarkScope.visitPages() {
         device.pressBack()
         pause(800)
     }
+}
+
+/**
+ * The map page: from the rail (wherever it is focused) to the map, zoom into the biggest bubble and out again.
+ * Keeps the rasteriser, the zoom animation and the bubbles in the profile. Needs places with photos on the server.
+ */
+internal fun MacrobenchmarkScope.visitMap() {
+    repeat(15) { device.pressDPadUp(); pause(150) } // top of the rail: Timeline
+    repeat(11) { device.pressDPadDown(); pause(250) } // Timeline -> ... -> Map
+    device.pressDPadCenter()
+    pause(4_000) // markers load, the coastlines are built off the main thread
+    device.pressDPadRight() // into the map: the biggest bubble
+    pause(800)
+    repeat(2) { device.pressKeyCode(KeyEvent.KEYCODE_ZOOM_IN); pause(1_500) }
+    repeat(2) { device.pressKeyCode(KeyEvent.KEYCODE_ZOOM_OUT); pause(1_500) }
+    device.pressBack() // map -> rail
+    pause(800)
 }

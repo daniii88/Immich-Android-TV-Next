@@ -33,5 +33,6 @@ class BaselineProfileGenerator {
         scrollTimeline()
         browseViewer()
         visitPages()
+        visitMap()
     }
 }

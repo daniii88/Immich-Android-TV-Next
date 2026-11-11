@@ -314,6 +314,10 @@
         <item quantity="one">%d weiterer Ort – hineinzoomen</item>
         <item quantity="other">%d weitere Orte – hineinzoomen</item>
     </plurals>
+    <plurals name="map_group_places">
+        <item quantity="one">%d Ort</item>
+        <item quantity="other">%d Orte</item>
+    </plurals>
     <plurals name="map_photos">
         <item quantity="one">%d Foto</item>
         <item quantity="other">%d Fotos</item>

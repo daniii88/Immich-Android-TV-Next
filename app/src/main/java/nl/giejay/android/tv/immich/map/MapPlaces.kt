@@ -23,9 +23,16 @@ data class MapCluster(
     val count: Int,
     val cities: List<PlaceCity>,
 ) {
-    /** The biggest city, "+N" for the others in the bubble. */
-    val label: String
-        get() = cities.first().city + if (cities.size > 1) " +${cities.size - 1}" else ""
+    /** The name of the place when the bubble is a single city; a group has no city's name (see [countries]). */
+    val singleName: String?
+        get() = cities.singleOrNull()?.city
+
+    /** The countries of the bubble, the one with the most photos first. */
+    val countries: List<String>
+        get() = cities.filter { it.country != null }
+            .groupBy { it.country!! }
+            .entries.sortedByDescending { (_, group) -> group.sumOf { it.count } }
+            .map { it.key }
 }
 
 /** Cities closer than this (degrees on the globe, roughly 300 km) merge into one bubble on the world map. */
