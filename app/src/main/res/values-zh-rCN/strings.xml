@@ -325,6 +325,7 @@
     <plurals name="map_more_places">
         <item quantity="other">还有 %d 个地点，放大查看</item>
     </plurals>
+    <string name="map_group_around">%1$s 一带</string>
     <plurals name="map_group_places">
         <item quantity="other">%d 个地点</item>
     </plurals>

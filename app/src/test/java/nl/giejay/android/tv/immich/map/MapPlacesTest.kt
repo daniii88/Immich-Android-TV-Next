@@ -142,4 +142,52 @@ class MapPlacesTest {
         assertThat(regions.first().cities.map { it.city }).containsExactly("Muenchen", "Nuernberg").inOrder()
         assertThat(regions.first().coverAssetId).isEqualTo("a")
     }
+
+    private fun bubble(vararg cities: PlaceCity) = MapCluster(0.0, 0.0, cities.sumOf { it.count }, cities.sortedByDescending { it.count })
+    private fun place(name: String, country: String?, state: String?, count: Int, lat: Double = 0.0, lon: Double = 0.0) = PlaceCity(name, country, count, lat, lon, name, state)
+
+    @Test
+    fun `a single city is named by its city`() {
+        assertThat(bubble(place("Bern", "CH", "Bern", 3)).name()).isEqualTo(ClusterName.City("Bern"))
+    }
+
+    @Test
+    fun `a few photos across a border do not name the country`() {
+        // 216 photos in Brandenburg and 3 in Czechia: the bubble sits in Germany and says so
+        val name = bubble(place("Cottbus", "Germany", "Brandenburg", 216), place("Liberec", "Czechia", "Liberec", 3)).name()
+        assertThat(name).isInstanceOf(ClusterName.Around::class.java)
+    }
+
+    @Test
+    fun `countries with a real share name a group over several countries`() {
+        val name = bubble(place("Berlin", "Germany", "Berlin", 20), place("Paris", "France", "IdF", 10), place("Wien", "Austria", "Wien", 1)).name()
+        assertThat(name).isEqualTo(ClusterName.Countries(listOf("Germany", "France"), 0, 3)) // Austria: 1 of 31 photos
+    }
+
+    @Test
+    fun `a group over several regions of one country is named by its regions`() {
+        val name = bubble(place("Muenchen", "Germany", "Bavaria", 20), place("Frankfurt", "Germany", "Hesse", 10), place("Mainz", "Germany", "Rhineland-Palatinate", 6)).name()
+        assertThat(name).isEqualTo(ClusterName.Regions(listOf("Bavaria", "Hesse"), 1, 3))
+    }
+
+    @Test
+    fun `a group in one region is named around its biggest city and its region, so the closest zoom still says where`() {
+        val name = bubble(place("Muenchen", "Germany", "Bavaria", 20), place("Dachau", "Germany", "Bavaria", 4), place("Freising", "Germany", null, 2)).name()
+        assertThat(name).isEqualTo(ClusterName.Around("Muenchen", "Bavaria", 3))
+    }
+
+    @Test
+    fun `without any region the group is named around its biggest city`() {
+        val name = bubble(place("Muenchen", "Germany", null, 20), place("Dachau", "Germany", null, 4)).name()
+        assertThat(name).isEqualTo(ClusterName.Around("Muenchen", null, 2))
+    }
+
+    @Test
+    fun `a wide bubble over one country is named by the country, not by a few of its regions`() {
+        val name = bubble(
+            place("Hamburg", "Germany", "Hamburg", 20, 54.5, 10.0), place("Muenchen", "Germany", "Bavaria", 20, 47.5, 11.5),
+            place("Liberec", "Czechia", "Liberec", 2, 50.8, 15.0),
+        ).name()
+        assertThat(name).isEqualTo(ClusterName.Countries(listOf("Germany"), 0, 3))
+    }
 }

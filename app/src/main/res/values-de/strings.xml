@@ -312,6 +312,7 @@
         <item quantity="one">%d weiterer Ort – hineinzoomen</item>
         <item quantity="other">%d weitere Orte – hineinzoomen</item>
     </plurals>
+    <string name="map_group_around">Um %1$s</string>
     <plurals name="map_group_places">
         <item quantity="one">%d Ort</item>
         <item quantity="other">%d Orte</item>

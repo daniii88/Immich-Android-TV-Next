@@ -322,6 +322,7 @@
         <item quantity="many">Ещё %d мест – увеличьте</item>
         <item quantity="other">Ещё %d места – увеличьте</item>
     </plurals>
+    <string name="map_group_around">%1$s и окрестности</string>
     <plurals name="map_group_places">
         <item quantity="one">%d место</item>
         <item quantity="few">%d места</item>

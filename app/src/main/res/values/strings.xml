@@ -367,6 +367,7 @@
         <item quantity="one">%d more place – zoom in to see it</item>
         <item quantity="other">%d more places – zoom in to see them</item>
     </plurals>
+    <string name="map_group_around">Around %1$s</string>
     <plurals name="map_group_places">
         <item quantity="one">%d place</item>
         <item quantity="other">%d places</item>

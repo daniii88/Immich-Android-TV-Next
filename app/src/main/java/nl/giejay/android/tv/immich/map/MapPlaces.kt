@@ -146,3 +146,51 @@ fun regionsOf(cities: List<PlaceCity>): List<MapRegion> =
         .groupBy { it.state!! to it.country }
         .map { (key, group) -> MapRegion(key.first, key.second, group.sortedByDescending { it.count }) }
         .sortedByDescending { it.count }
+
+/** A country or region must hold at least this share of a bubble's photos to be named; a few photos across a border do not count. */
+const val CLUSTER_NAME_MIN_SHARE = 0.10
+
+/** A bubble wider than this (degrees, roughly 700 km) is named by its country, a smaller one by its regions or its biggest city. */
+const val CLUSTER_NAME_COUNTRY_EXTENT_DEGREES = 6.0
+
+/** The larger side of the box around the bubble's cities, in degrees (longitudes counted across the date line). */
+private fun MapCluster.extentDegrees(): Double {
+    val reference = cities.first().lon
+    val offsets = cities.map { wrapDegrees(it.lon - reference) }
+    val lats = cities.map { it.lat }
+    return maxOf(lats.max() - lats.min(), offsets.max() - offsets.min())
+}
+
+/** What a bubble is called; the screen turns it into text. A group is never named after one of its cities alone. */
+sealed interface ClusterName {
+    /** A single city. */
+    data class City(val city: String) : ClusterName
+
+    /** A group over several countries: the countries that matter, [more] others, and the number of places. */
+    data class Countries(val shown: List<String>, val more: Int, val places: Int) : ClusterName
+
+    /** A group over several regions of one country. */
+    data class Regions(val shown: List<String>, val more: Int, val places: Int) : ClusterName
+
+    /** A group in one region: around its biggest city, with the region when the geocoding has one. */
+    data class Around(val city: String, val region: String?, val places: Int) : ClusterName
+}
+
+/**
+ * Names a bubble by what is in it: its countries (those with a share of the photos) when it is several or the bubble
+ * is wide, else several regions, else "around" its biggest city and its region, so that at the closest zoom the bubbles of one country still tell which
+ * part of it they are.
+ */
+fun MapCluster.name(minShare: Double = CLUSTER_NAME_MIN_SHARE): ClusterName {
+    singleName?.let { return ClusterName.City(it) }
+    val places = cities.size
+    fun significant(counts: Map<String, Int>): List<String> =
+        counts.entries.sortedByDescending { it.value }.filter { it.value >= count * minShare }.map { it.key }
+    val countries = significant(cities.filter { it.country != null }.groupBy { it.country!! }.mapValues { (_, v) -> v.sumOf { it.count } })
+    if (countries.size >= 2 || (countries.isNotEmpty() && extentDegrees() > CLUSTER_NAME_COUNTRY_EXTENT_DEGREES)) {
+        return ClusterName.Countries(countries.take(2), (countries.size - 2).coerceAtLeast(0), places)
+    }
+    val regions = significant(cities.filter { it.state != null }.groupBy { it.state!! }.mapValues { (_, v) -> v.sumOf { it.count } })
+    if (regions.size >= 2) return ClusterName.Regions(regions.take(2), regions.size - 2, places)
+    return ClusterName.Around(cities.first().city, regions.firstOrNull() ?: cities.firstNotNullOfOrNull { it.state }, places)
+}

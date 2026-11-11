@@ -85,6 +85,7 @@ import androidx.tv.material3.Text
 import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.api.util.ApiUtil
 import nl.giejay.android.tv.immich.card.Card
+import nl.giejay.android.tv.immich.map.ClusterName
 import nl.giejay.android.tv.immich.map.MapCluster
 import nl.giejay.android.tv.immich.map.MapRegion
 import nl.giejay.android.tv.immich.map.MapViewport
@@ -92,6 +93,7 @@ import nl.giejay.android.tv.immich.map.PlaceCity
 import nl.giejay.android.tv.immich.map.WorldDots
 import nl.giejay.android.tv.immich.map.canZoomInto
 import nl.giejay.android.tv.immich.map.clustersFor
+import nl.giejay.android.tv.immich.map.name
 import nl.giejay.android.tv.immich.map.orderByProximity
 import nl.giejay.android.tv.immich.map.regionsOf
 import nl.giejay.android.tv.immich.map.viewportFor
@@ -619,13 +621,16 @@ internal fun MapViewport.covers(other: MapViewport, eps: Double = 1e-6): Boolean
 
 private const val ZOOM_MILLIS = 450
 
-/** The name of a single city; a group of cities is named by its countries and the number of places, never by one city. */
+/** The name of a bubble: a city, or the countries / regions it spans, or "around" its biggest city; plus the number of places. */
 @Composable
 private fun clusterLabel(cluster: MapCluster): String {
-    cluster.singleName?.let { return it }
-    val places = pluralStringResource(R.plurals.map_group_places, cluster.cities.size, cluster.cities.size)
-    val countries = cluster.countries
-    if (countries.isEmpty()) return places
-    val shown = countries.take(2).joinToString(", ") + if (countries.size > 2) " +${countries.size - 2}" else ""
-    return "$shown · $places"
+    fun list(shown: List<String>, more: Int) = shown.joinToString(", ") + if (more > 0) " +$more" else ""
+    return when (val name = cluster.name()) {
+        is ClusterName.City -> name.city
+        is ClusterName.Countries -> list(name.shown, name.more) + " · " + pluralStringResource(R.plurals.map_group_places, name.places, name.places)
+        is ClusterName.Regions -> list(name.shown, name.more) + " · " + pluralStringResource(R.plurals.map_group_places, name.places, name.places)
+        is ClusterName.Around ->
+            listOfNotNull(stringResource(R.string.map_group_around, name.city), name.region).joinToString(", ") +
+                " · " + pluralStringResource(R.plurals.map_group_places, name.places, name.places)
+    }
 }
