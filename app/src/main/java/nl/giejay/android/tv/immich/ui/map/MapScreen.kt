@@ -225,6 +225,9 @@ private fun Resources.places(n: Int) = getQuantityString(R.plurals.map_group_pla
 private fun Resources.photos(n: Int) = getQuantityString(R.plurals.map_photos, n, n)
 private fun Resources.countries(n: Int) = getQuantityString(R.plurals.map_countries, n, n)
 
+/** The places whose photos name no country: no country lists them, so the world level does. */
+private fun MapData.countryless(): List<PlaceCity> = cities.filter { it.country == null }
+
 /** "N places · N photos", or just the photos when none of them has a place name. */
 private fun Resources.placesAndPhotos(places: Int, photos: Int) = if (places == 0) photos(photos) else places(places) + " · " + photos(photos)
 
@@ -254,7 +257,7 @@ private fun entriesFor(
             pinKey = country.pin().key,
             open = { levels.open(MapLevel.Country(country), index) },
         )
-    }
+    } + data.countryless().map { placeEntry(res, it, withRegion = true, onOpenCity) } // in no country: listed after them
     is MapLevel.Country -> {
         val country = level.country
         val contents = country.contents()
@@ -289,7 +292,7 @@ private fun entriesFor(
 
 /** The photo pins a level can show: its countries, regions or places. */
 private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) {
-    MapLevel.World -> data.countries.map { it.pin() }
+    MapLevel.World -> data.countries.map { it.pin() } + data.countryless().map { it.pin() }
     is MapLevel.Country -> level.country.contents().let { c -> c.regions.map { it.pin() } + c.places.map { it.pin() } }
     is MapLevel.Region -> level.region.cities.map { it.pin() }
 }
