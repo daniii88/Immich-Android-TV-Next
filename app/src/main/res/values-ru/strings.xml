@@ -324,6 +324,12 @@
         <item quantity="many">Ещё %d мест – увеличьте</item>
         <item quantity="other">Ещё %d места – увеличьте</item>
     </plurals>
+    <plurals name="map_group_places">
+        <item quantity="one">%d место</item>
+        <item quantity="few">%d места</item>
+        <item quantity="many">%d мест</item>
+        <item quantity="other">%d места</item>
+    </plurals>
     <plurals name="map_photos">
         <item quantity="one">%d фото</item>
         <item quantity="few">%d фото</item>

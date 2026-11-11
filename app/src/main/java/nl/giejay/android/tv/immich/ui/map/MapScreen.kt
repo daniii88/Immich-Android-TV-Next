@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
@@ -402,7 +403,7 @@ private fun WorldMap(
                 size = 30.dp + 22.dp * sqrt(cluster.count.toFloat() / maxCount),
                 accent = accent,
                 selected = cluster === focused,
-                label = if (cluster === focused) cluster.label else null,
+                label = if (cluster === focused) clusterLabel(cluster) else null,
                 onFocused = { onFocused(cluster) },
                 onClick = { onOpen(cluster) },
                 viewport = shownView,
@@ -624,3 +625,14 @@ internal fun MapViewport.covers(other: MapViewport, eps: Double = 1e-6): Boolean
     lonMin <= other.lonMin + eps && lonMax >= other.lonMax - eps && latTop >= other.latTop - eps && latBottom <= other.latBottom + eps
 
 private const val ZOOM_MILLIS = 450
+
+/** The name of a single city; a group of cities is named by its countries and the number of places, never by one city. */
+@Composable
+private fun clusterLabel(cluster: MapCluster): String {
+    cluster.singleName?.let { return it }
+    val places = pluralStringResource(R.plurals.map_group_places, cluster.cities.size, cluster.cities.size)
+    val countries = cluster.countries
+    if (countries.isEmpty()) return places
+    val shown = countries.take(2).joinToString(", ") + if (countries.size > 2) " +${countries.size - 2}" else ""
+    return "$shown · $places"
+}

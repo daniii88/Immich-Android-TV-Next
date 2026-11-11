@@ -39,8 +39,24 @@ class MapPlacesTest {
         assertThat(clusters).hasSize(1)
         val cluster = clusters.single()
         assertThat(cluster.count).isEqualTo(4)
-        assertThat(cluster.label).isEqualTo("Bern +1")
+        assertThat(cluster.singleName).isNull()
+        assertThat(cluster.cities.map { it.city }).containsExactly("Bern", "Zurich").inOrder()
         assertThat(cluster.lat).isWithin(1e-9).of((47.0 * 3 + 47.5) / 4)
+    }
+
+    @Test
+    fun `a bubble lists its countries, the one with the most photos first, and has no single name`() {
+        val cities = groupCities(
+            listOf(
+                marker("a", 47.2, 11.4, "Innsbruck", "Austria"), marker("f", 47.2, 11.4, "Innsbruck", "Austria"), marker("g", 47.2, 11.4, "Innsbruck", "Austria"),
+                marker("b", 47.7, 9.1, "Konstanz", "Germany"), marker("c", 47.7, 9.1, "Konstanz", "Germany"),
+                marker("d", 47.4, 9.7, "Bregenz", "Austria"),
+                marker("e", 47.3, 9.9, "Dornbirn", null),
+            )
+        )
+        val cluster = clusterCities(cities, radiusDegrees = 5.0).single()
+        assertThat(cluster.singleName).isNull()
+        assertThat(cluster.countries).containsExactly("Austria", "Germany").inOrder()
     }
 
     @Test
@@ -61,7 +77,7 @@ class MapPlacesTest {
         val clusters = clusterCities(
             groupCities(listOf(marker("a", 47.0, 7.0, "Bern"), marker("b", -33.9, 151.2, "Sydney"), marker("c", -33.9, 151.2, "Sydney")))
         )
-        assertThat(clusters.map { it.label }).containsExactly("Sydney", "Bern").inOrder()
+        assertThat(clusters.map { it.singleName }).containsExactly("Sydney", "Bern").inOrder()
     }
 
     @Test

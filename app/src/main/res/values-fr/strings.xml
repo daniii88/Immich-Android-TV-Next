@@ -320,6 +320,10 @@
         <item quantity="one">%d autre lieu – zoomez pour le voir</item>
         <item quantity="other">%d autres lieux – zoomez pour les voir</item>
     </plurals>
+    <plurals name="map_group_places">
+        <item quantity="one">%d lieu</item>
+        <item quantity="other">%d lieux</item>
+    </plurals>
     <plurals name="map_photos">
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>
