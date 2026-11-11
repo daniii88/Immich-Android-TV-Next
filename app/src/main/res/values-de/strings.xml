@@ -307,12 +307,11 @@
     <string name="live_photo_failed">Live-Foto konnte nicht abgespielt werden</string>
     <string name="map">Karte</string>
     <string name="map_empty">Noch keine Fotos mit Ortsangabe</string>
-    <string name="map_zoom_out_hint">Zurück: herauszoomen</string>
-    <plurals name="map_more_places">
-        <item quantity="one">%d weiterer Ort – hineinzoomen</item>
-        <item quantity="other">%d weitere Orte – hineinzoomen</item>
+    <string name="map_all_photos">Alle Fotos</string>
+    <plurals name="map_countries">
+        <item quantity="one">%d Land</item>
+        <item quantity="other">%d Länder</item>
     </plurals>
-    <string name="map_group_around">Um %1$s</string>
     <plurals name="map_group_places">
         <item quantity="one">%d Ort</item>
         <item quantity="other">%d Orte</item>

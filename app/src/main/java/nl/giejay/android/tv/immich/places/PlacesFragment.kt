@@ -39,5 +39,6 @@ class PlacesFragment : VerticalCardGridFragment<Asset>() {
     companion object {
         const val FILTER_CITY = "city"
         const val FILTER_STATE = "state"
+        const val FILTER_COUNTRY = "country"
     }
 }

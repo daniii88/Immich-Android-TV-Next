@@ -313,12 +313,11 @@
     <string name="live_photo_failed">Impossible de lire la photo animée</string>
     <string name="map">Carte</string>
     <string name="map_empty">Aucune photo géolocalisée pour l’instant</string>
-    <string name="map_zoom_out_hint">Retour : dézoomer</string>
-    <plurals name="map_more_places">
-        <item quantity="one">%d autre lieu – zoomez pour le voir</item>
-        <item quantity="other">%d autres lieux – zoomez pour les voir</item>
+    <string name="map_all_photos">Toutes les photos</string>
+    <plurals name="map_countries">
+        <item quantity="one">%d pays</item>
+        <item quantity="other">%d pays</item>
     </plurals>
-    <string name="map_group_around">Autour de %1$s</string>
     <plurals name="map_group_places">
         <item quantity="one">%d lieu</item>
         <item quantity="other">%d lieux</item>

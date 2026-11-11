@@ -31,80 +31,6 @@ class MapPlacesTest {
     }
 
     @Test
-    fun `close cities share a bubble, the biggest first, at the photo weighted position`() {
-        val cities = groupCities(
-            listOf(marker("a", 47.0, 7.0, "Bern"), marker("b", 47.0, 7.0, "Bern"), marker("c", 47.0, 7.0, "Bern"), marker("d", 47.5, 8.5, "Zurich"))
-        )
-        val clusters = clusterCities(cities)
-        assertThat(clusters).hasSize(1)
-        val cluster = clusters.single()
-        assertThat(cluster.count).isEqualTo(4)
-        assertThat(cluster.singleName).isNull()
-        assertThat(cluster.cities.map { it.city }).containsExactly("Bern", "Zurich").inOrder()
-        assertThat(cluster.lat).isWithin(1e-9).of((47.0 * 3 + 47.5) / 4)
-    }
-
-    @Test
-    fun `a bubble lists its countries, the one with the most photos first, and has no single name`() {
-        val cities = groupCities(
-            listOf(
-                marker("a", 47.2, 11.4, "Innsbruck", "Austria"), marker("f", 47.2, 11.4, "Innsbruck", "Austria"), marker("g", 47.2, 11.4, "Innsbruck", "Austria"),
-                marker("b", 47.7, 9.1, "Konstanz", "Germany"), marker("c", 47.7, 9.1, "Konstanz", "Germany"),
-                marker("d", 47.4, 9.7, "Bregenz", "Austria"),
-                marker("e", 47.3, 9.9, "Dornbirn", null),
-            )
-        )
-        val cluster = clusterCities(cities, radiusDegrees = 5.0).single()
-        assertThat(cluster.singleName).isNull()
-        assertThat(cluster.countries).containsExactly("Austria", "Germany").inOrder()
-    }
-
-    @Test
-    fun `neighbours on either side of a cell border still share a bubble`() {
-        // 6.9 and 8.1 degrees east lie in different cells of a 4 degree grid but are 130 km apart
-        val clusters = clusterCities(groupCities(listOf(marker("a", 47.0, 6.9, "Bern"), marker("b", 47.0, 8.1, "Luzern"))))
-        assertThat(clusters).hasSize(1)
-    }
-
-    @Test
-    fun `cities across the date line are close`() {
-        val clusters = clusterCities(groupCities(listOf(marker("a", -17.0, 179.5, "Suva"), marker("b", -17.0, -179.5, "Taveuni"))))
-        assertThat(clusters).hasSize(1)
-    }
-
-    @Test
-    fun `far apart cities stay separate bubbles, the bigger bubble first`() {
-        val clusters = clusterCities(
-            groupCities(listOf(marker("a", 47.0, 7.0, "Bern"), marker("b", -33.9, 151.2, "Sydney"), marker("c", -33.9, 151.2, "Sydney")))
-        )
-        assertThat(clusters.map { it.singleName }).containsExactly("Sydney", "Bern").inOrder()
-    }
-
-    @Test
-    fun `places are listed as a walk through the neighbourhood, starting at the biggest`() {
-        // west to east along a line: the biggest is in the middle, then the nearest not yet listed each time
-        val a = PlaceCity("A", "X", 1, 0.0, 0.0, "a")
-        val b = PlaceCity("B", "X", 5, 0.0, 1.0, "b")
-        val c = PlaceCity("C", "X", 2, 0.0, 2.0, "c")
-        val d = PlaceCity("D", "X", 3, 0.0, 10.0, "d")
-        assertThat(orderByProximity(listOf(a, c, d, b)).map { it.city }).containsExactly("B", "C", "A", "D").inOrder()
-    }
-
-    @Test
-    fun `fewer than three places keep their order`() {
-        val a = PlaceCity("A", "X", 1, 0.0, 0.0, "a")
-        val b = PlaceCity("B", "X", 5, 0.0, 1.0, "b")
-        assertThat(orderByProximity(listOf(a, b))).containsExactly(a, b).inOrder()
-    }
-
-    @Test
-    fun `a bubble across the date line sits at the date line, not at zero`() {
-        val clusters = clusterCities(listOf(PlaceCity("Suva", "X", 1, -17.0, 179.0, "a"), PlaceCity("Taveuni", "X", 1, -17.0, -179.0, "b")), 5.0)
-        val lon = clusters.single().lon
-        assertThat(kotlin.math.abs(lon)).isAtLeast(178.0)
-    }
-
-    @Test
     fun `places that are excluded from the TV app do not reach the map`() {
         val markers = listOf(marker("a", 1.0, 1.0, "Oslo"), marker("b", 1.0, 1.0, "Oslo"), marker("c", 2.0, 2.0, "Rome"))
         val shown = nl.giejay.android.tv.immich.api.withoutExcludedMarkers(markers, setOf("a", "c"))
@@ -142,52 +68,71 @@ class MapPlacesTest {
         assertThat(regions.first().cities.map { it.city }).containsExactly("Muenchen", "Nuernberg").inOrder()
         assertThat(regions.first().coverAssetId).isEqualTo("a")
     }
-
-    private fun bubble(vararg cities: PlaceCity) = MapCluster(0.0, 0.0, cities.sumOf { it.count }, cities.sortedByDescending { it.count })
-    private fun place(name: String, country: String?, state: String?, count: Int, lat: Double = 0.0, lon: Double = 0.0) = PlaceCity(name, country, count, lat, lon, name, state)
+    private fun place(name: String, country: String?, state: String?, count: Int) = PlaceCity(name, country, count, 0.0, 0.0, name, state)
 
     @Test
-    fun `a single city is named by its city`() {
-        assertThat(bubble(place("Bern", "CH", "Bern", 3)).name()).isEqualTo(ClusterName.City("Bern"))
+    fun `countries group their places, the most photographed country and place first`() {
+        val countries = countriesOf(
+            listOf(place("Paris", "France", null, 3), place("Berlin", "Germany", null, 2), place("Hamburg", "Germany", null, 4), place("Nowhere", null, null, 9))
+        )
+        assertThat(countries.map { it.name }).containsExactly("Germany", "France").inOrder()
+        assertThat(countries.first().count).isEqualTo(6)
+        assertThat(countries.first().cities.map { it.city }).containsExactly("Hamburg", "Berlin").inOrder()
+        assertThat(countries.first().coverAssetId).isEqualTo("Hamburg")
     }
 
     @Test
-    fun `a few photos across a border do not name the country`() {
-        // 216 photos in Brandenburg and 3 in Czechia: the bubble sits in Germany and says so
-        val name = bubble(place("Cottbus", "Germany", "Brandenburg", 216), place("Liberec", "Czechia", "Liberec", 3)).name()
-        assertThat(name).isInstanceOf(ClusterName.Around::class.java)
+    fun `a small country lists its places, a big one its regions and the places without a region`() {
+        val small = PlaceCountry("Austria", listOf(place("Wien", "Austria", "Wien", 3), place("Graz", "Austria", "Steiermark", 1)))
+        assertThat(small.contents().regions).isEmpty()
+        assertThat(small.contents().places.map { it.city }).containsExactly("Wien", "Graz")
+
+        val cities = (1..REGIONS_FROM_PLACES).map { place("Ort $it", "Germany", if (it % 2 == 0) "Bayern" else "Hessen", 1) } +
+            place("Irgendwo", "Germany", null, 1)
+        val big = PlaceCountry("Germany", cities).contents()
+        assertThat(big.regions.map { it.state }).containsExactly("Bayern", "Hessen")
+        assertThat(big.places.map { it.city }).containsExactly("Irgendwo")
     }
 
     @Test
-    fun `countries with a real share name a group over several countries`() {
-        val name = bubble(place("Berlin", "Germany", "Berlin", 20), place("Paris", "France", "IdF", 10), place("Wien", "Austria", "Wien", 1)).name()
-        assertThat(name).isEqualTo(ClusterName.Countries(listOf("Germany", "France"), 0, 3)) // Austria: 1 of 31 photos
+    fun `a big country of one region lists its places`() {
+        val cities = (0..REGIONS_FROM_PLACES).map { place("Ort $it", "Monaco", "Monaco", 1) }
+        val contents = PlaceCountry("Monaco", cities).contents()
+        assertThat(contents.regions).isEmpty()
+        assertThat(contents.places).hasSize(cities.size)
     }
 
     @Test
-    fun `a group over several regions of one country is named by its regions`() {
-        val name = bubble(place("Muenchen", "Germany", "Bavaria", 20), place("Frankfurt", "Germany", "Hesse", 10), place("Mainz", "Germany", "Rhineland-Palatinate", 6)).name()
-        assertThat(name).isEqualTo(ClusterName.Regions(listOf("Bavaria", "Hesse"), 1, 3))
+    fun `the footprint keeps every photo, also those without a place name, with its country`() {
+        val footprint = MapFootprint.of(
+            listOf(marker("a", 48.1, 11.5, "Muenchen", "Germany"), marker("b", 10.0, 10.0, null, null), marker("c", 48.9, 2.3, "Paris", "France"))
+        )
+        assertThat(footprint.size).isEqualTo(3)
+        assertThat(footprint.countries).containsExactly("Germany", "France").inOrder()
+        assertThat(footprint.country.toList()).containsExactly(0, -1, 1).inOrder()
     }
 
     @Test
-    fun `a group in one region is named around its biggest city and its region, so the closest zoom still says where`() {
-        val name = bubble(place("Muenchen", "Germany", "Bavaria", 20), place("Dachau", "Germany", "Bavaria", 4), place("Freising", "Germany", null, 2)).name()
-        assertThat(name).isEqualTo(ClusterName.Around("Muenchen", "Bavaria", 3))
+    fun `footprint cells count the photos per dot, the highlighted country apart`() {
+        val footprint = MapFootprint.of(
+            listOf(
+                marker("a", 45.0, -135.0, "A", "Germany"), marker("b", 45.0, -135.0, "A", "Germany"),
+                marker("c", 45.0, -135.0, "B", "France"), marker("d", -45.0, 135.0, "C", "France"),
+            )
+        )
+        // a 4 x 2 grid over the world from -180 to 180 and 90 to -90: 90 degrees per column, 90 per row
+        val view = MapViewport(-180.0, 180.0, 90.0, -90.0)
+        val cells = footprintCells(footprint, view, 4, 2, highlight = "Germany")
+        assertThat(cells.all.toList()).containsExactly(3, 0, 0, 0, 0, 0, 0, 1).inOrder()
+        assertThat(cells.bright.toList()).containsExactly(2, 0, 0, 0, 0, 0, 0, 0).inOrder()
+        assertThat(cells.max).isEqualTo(3)
+        assertThat(footprintCells(footprint, view, 4, 2, highlight = null).bright.toList()).isEqualTo(cells.all.toList())
     }
 
     @Test
-    fun `without any region the group is named around its biggest city`() {
-        val name = bubble(place("Muenchen", "Germany", null, 20), place("Dachau", "Germany", null, 4)).name()
-        assertThat(name).isEqualTo(ClusterName.Around("Muenchen", null, 2))
-    }
-
-    @Test
-    fun `a wide bubble over one country is named by the country, not by a few of its regions`() {
-        val name = bubble(
-            place("Hamburg", "Germany", "Hamburg", 20, 54.5, 10.0), place("Muenchen", "Germany", "Bavaria", 20, 47.5, 11.5),
-            place("Liberec", "Czechia", "Liberec", 2, 50.8, 15.0),
-        ).name()
-        assertThat(name).isEqualTo(ClusterName.Countries(listOf("Germany"), 0, 3))
+    fun `photos outside the view are not counted`() {
+        val footprint = MapFootprint.of(listOf(marker("a", 48.1, 11.5, "Muenchen", "Germany"), marker("b", -33.9, 151.2, "Sydney", "Australia")))
+        val europe = MapViewport(-10.0, 30.0, 60.0, 40.0)
+        assertThat(footprintCells(footprint, europe, 10, 5, null).all.sum()).isEqualTo(1)
     }
 }

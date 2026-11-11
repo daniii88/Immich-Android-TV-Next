@@ -23,23 +23,24 @@ import nl.giejay.android.tv.immich.api.ApiClientConfig
 import nl.giejay.android.tv.immich.home.HomeFragmentDirections
 import nl.giejay.android.tv.immich.places.PlacesFragment
 import nl.giejay.android.tv.immich.ui.immichComposeView
+import nl.giejay.android.tv.immich.ui.map.MapData
+import nl.giejay.android.tv.immich.ui.map.MapLevelState
 import nl.giejay.android.tv.immich.ui.map.MapScreen
 import nl.giejay.android.tv.immich.ui.map.MapUiState
 import nl.giejay.android.tv.immich.ui.map.MapVectors
 import nl.giejay.android.tv.immich.ui.map.buildMapVectors
-import nl.giejay.android.tv.immich.ui.map.MapZoomState
 import timber.log.Timber
 
-/** The places of the library on a world map; a place opens the photos taken there (like the Places page). */
+/** Where the photos of the library were taken, on a world map; countries lead to regions and places and their photos. */
 class MapFragment : Fragment() {
     private var state by mutableStateOf<MapUiState>(MapUiState.Loading)
-    private val zoom = MapZoomState()
+    private val levels = MapLevelState()
 
-    // Back zooms out first; at the world view it is not for the map (the home screen takes it)
-    private val zoomBack = object : OnBackPressedCallback(false) {
+    // Back goes up a level first; at the world it is not for the map (the home screen takes it)
+    private val levelBack = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            zoom.zoomOut()
-            isEnabled = zoom.isZoomed
+            levels.back()
+            isEnabled = levels.isNested
         }
     }
 
@@ -49,7 +50,7 @@ class MapFragment : Fragment() {
             val landDots = remember {
                 resources.openRawResource(R.raw.world_land_dots).use { WorldDots.decode(it.readBytes()) }
             }
-            LaunchedEffect(zoom.changes) { zoomBack.isEnabled = zoom.isZoomed }
+            LaunchedEffect(levels.changes) { levelBack.isEnabled = levels.isNested }
             // the coastlines are built off the main thread (30 thousand points); until then the map shows dots only
             val vectors by produceState<MapVectors?>(null) {
                 value = withContext(Dispatchers.Default) {
@@ -58,26 +59,33 @@ class MapFragment : Fragment() {
                     buildMapVectors(land, borders)
                 }
             }
-            MapScreen(state, landDots, vectors, zoom, onOpenCity = ::openCity, onOpenRegion = ::openRegion)
+            MapScreen(state, landDots, vectors, levels, onOpenCity = ::openCity, onOpenRegion = ::openRegion, onOpenCountry = ::openCountry)
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, zoomBack)
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, levelBack)
         viewLifecycleOwner.lifecycleScope.launch {
             // the server sends every marker (hundreds of thousands in a big library): load and group them off the main
-            // thread, and keep only the places
+            // thread; the places for the cards, and one point per photo for the lit dots
             state = withContext(Dispatchers.IO) {
                 ApiClient.getClient(ApiClientConfig.fromPrefs()).getMapMarkers().fold(
                     { MapUiState.Failed(it) },
                     { markers ->
                         val cities = groupCities(markers)
-                        if (cities.isEmpty()) MapUiState.Empty else MapUiState.Ready(cities)
+                        if (markers.isEmpty()) MapUiState.Empty
+                        else MapUiState.Ready(MapData(cities, countriesOf(cities), MapFootprint.of(markers)))
                     },
                 )
             }
         }
+    }
+
+    private fun openCountry(country: PlaceCountry) {
+        findNavController().navigate(
+            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_COUNTRY, country.name, country.name, null),
+        )
     }
 
     private fun openRegion(region: MapRegion) {

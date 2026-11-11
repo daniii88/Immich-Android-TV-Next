@@ -40,31 +40,4 @@ class MapViewportTest {
         assertThat(view.latTop).isAtMost(WorldDots.LAT_TOP)
     }
 
-    @Test
-    fun `the cluster radius shrinks with the zoom`() {
-        assertThat(MapViewport.WORLD.clusterRadius).isWithin(1e-9).of(MapViewport.CLUSTER_RADIUS_FRACTION * 360.0)
-        val zoomed = viewportFor(listOf(city("A", 47.0, 7.0), city("B", 48.8, 2.3)))
-        assertThat(zoomed.clusterRadius).isLessThan(MapViewport.WORLD.clusterRadius / 5)
-    }
-
-    @Test
-    fun `zooming into a bubble splits its cities, a bubble of one spot cannot be zoomed`() {
-        val cities = listOf(city("Paris", 48.85, 2.35, 3), city("London", 51.5, -0.12, 2), city("Rome", 41.9, 12.5, 1))
-        val world = clusterCities(cities, MapViewport.WORLD.clusterRadius)
-        val europe = world.maxByOrNull { it.cities.size }!!
-        if (europe.cities.size > 1) {
-            assertThat(canZoomInto(europe, MapViewport.WORLD)).isTrue()
-            val inside = clustersFor(cities, viewportFor(europe.cities))
-            assertThat(inside.size).isGreaterThan(1)
-        }
-        val sameSpot = clusterCities(listOf(city("A", 10.0, 10.0), city("B", 10.001, 10.001)), 3.0).single()
-        assertThat(canZoomInto(sameSpot, MapViewport.WORLD)).isFalse()
-    }
-
-    @Test
-    fun `only cities in view are listed`() {
-        val view = viewportFor(listOf(city("Paris", 48.85, 2.35), city("London", 51.5, -0.12)))
-        val clusters = clustersFor(listOf(city("Paris", 48.85, 2.35), city("London", 51.5, -0.12), city("Sydney", -33.9, 151.2)), view)
-        assertThat(clusters.flatMap { it.cities }.map { it.city }).containsExactly("Paris", "London")
-    }
 }

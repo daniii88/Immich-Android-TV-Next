@@ -8,7 +8,7 @@ import nl.giejay.android.tv.immich.assets.GenericAssetFragment
 import nl.giejay.android.tv.immich.shared.prefs.PhotosOrder
 import nl.giejay.android.tv.immich.tags.TagsFragment
 
-/** The photos of one place (city), one region (state) or one tag; opened from [PlacesFragment] / [TagsFragment]. */
+/** The photos of one place (city), region (state) or country, or of one tag; opened from [PlacesFragment] / [TagsFragment]. */
 class FilteredAssetsFragment : GenericAssetFragment() {
     private lateinit var filterType: String
     private lateinit var filterValue: String
@@ -33,7 +33,11 @@ class FilteredAssetsFragment : GenericAssetFragment() {
             order = if (currentSort == PhotosOrder.NEWEST_OLDEST) "desc" else "asc",
             city = if (filterType == PlacesFragment.FILTER_CITY) filterValue else null,
             state = if (filterType == PlacesFragment.FILTER_STATE) filterValue else null,
-            country = if (filterType == PlacesFragment.FILTER_CITY || filterType == PlacesFragment.FILTER_STATE) filterCountry else null,
+            country = when (filterType) {
+                PlacesFragment.FILTER_COUNTRY -> filterValue
+                PlacesFragment.FILTER_CITY, PlacesFragment.FILTER_STATE -> filterCountry
+                else -> null
+            },
             tagIds = if (filterType == TagsFragment.FILTER_TAG) listOf(filterValue) else emptyList(),
         ).map { it.assets }
 
