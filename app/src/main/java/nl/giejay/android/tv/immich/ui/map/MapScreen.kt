@@ -48,7 +48,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlin.math.abs
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
@@ -62,6 +75,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -81,6 +95,7 @@ import nl.giejay.android.tv.immich.map.viewportFor
 import nl.giejay.android.tv.immich.ui.card.ImmichFocusableCard
 import nl.giejay.android.tv.immich.ui.theme.ImmichFocus
 import kotlin.math.floor
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /** What the map page shows. */
@@ -285,16 +300,18 @@ private fun WorldMap(
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     // the view glides to its new frame; bubbles and dots follow it
     val spec = tween<Float>(ZOOM_MILLIS)
-    val lonMin by animateFloatAsState(viewport.lonMin.toFloat(), spec, label = "lonMin")
-    val lonMax by animateFloatAsState(viewport.lonMax.toFloat(), spec, label = "lonMax")
-    val latTop by animateFloatAsState(viewport.latTop.toFloat(), spec, label = "latTop")
-    val latBottom by animateFloatAsState(viewport.latBottom.toFloat(), spec, label = "latBottom")
-    val shown = MapViewport(lonMin.toDouble(), lonMax.toDouble(), latTop.toDouble(), latBottom.toDouble())
+    val lonMin = animateFloatAsState(viewport.lonMin.toFloat(), spec, label = "lonMin")
+    val lonMax = animateFloatAsState(viewport.lonMax.toFloat(), spec, label = "lonMax")
+    val latTop = animateFloatAsState(viewport.latTop.toFloat(), spec, label = "latTop")
+    val latBottom = animateFloatAsState(viewport.latBottom.toFloat(), spec, label = "latBottom")
+    // read only while drawing and laying out, so a frame of the glide does not recompose the map
+    val shownView = { MapViewport(lonMin.value.toDouble(), lonMax.value.toDouble(), latTop.value.toDouble(), latBottom.value.toDouble()) }
 
     BoxWithConstraints(
         modifier
             .clip(RoundedCornerShape(28.dp))
-            .background(Brush.verticalGradient(listOf(surfaceVariant.copy(alpha = 0.55f), surface)))
+            // flat, not a gradient: a gradient over the whole map cost a quarter of the GPU time of a frame on a TV box
+            .background(surfaceVariant.copy(alpha = 0.28f).compositeOver(surface))
             .focusGroup(),
     ) {
         val mapWidth = maxWidth
@@ -302,21 +319,59 @@ private fun WorldMap(
         // with the vectors loaded, the dots come from the real coastlines at every zoom (finer when zoomed in); until
         // then, and as a fallback, from the coarse mask of the world view
         val landDotsFromVectors = remember(vectors) { vectors?.let { LandDots(it) } }
-        val dotPaint = remember { Paint().apply { strokeCap = StrokeCap.Square; isAntiAlias = false } }
+        val density = LocalDensity.current
+        val widthPx = with(density) { mapWidth.roundToPx() }
+        val heightPx = with(density) { mapHeight.roundToPx() }
+        // The dots of the view the map is heading for, finished off the main thread. While the view glides there, the
+        // previous picture is moved and scaled to fit (pixel-sharp, no smoothing) and then swapped for the fine one:
+        // rasterising the coastlines in every frame of the glide was far too slow for a TV box.
+        val land = dotColor.copy(alpha = 0.26f).toArgb()
+        val border = dotColor.copy(alpha = 0.55f).toArgb()
+        val readyLayer by produceState<DotsLayer?>(null, landDotsFromVectors, viewport, widthPx, heightPx) {
+            val dots = landDotsFromVectors ?: return@produceState
+            if (widthPx < 1 || heightPx < 1) return@produceState
+            value = renderDotsLayer(dots, viewport, widthPx, heightPx, land, border)
+        }
+        // The picture on screen. A finished one that covers the old one (zooming out, or the first) takes over at once;
+        // one for a smaller view (zooming in) waits until the glide has arrived, else the margins it does not cover
+        // would go blank while the view is still wider.
+        var dotsLayer by remember { mutableStateOf<DotsLayer?>(null) }
+        LaunchedEffect(readyLayer) {
+            val next = readyLayer ?: return@LaunchedEffect
+            val old = dotsLayer
+            if (old != null && !next.view.covers(old.view)) {
+                if (!old.view.covers(next.view)) {
+                    // the new view reaches beyond the old one and the old beyond the new (zooming in towards an edge):
+                    // a picture of both views together covers every view of the glide
+                    val both = MapViewport(
+                        minOf(old.view.lonMin, next.view.lonMin), maxOf(old.view.lonMax, next.view.lonMax),
+                        maxOf(old.view.latTop, next.view.latTop), minOf(old.view.latBottom, next.view.latBottom),
+                    )
+                    val dots = landDotsFromVectors ?: return@LaunchedEffect
+                    dotsLayer = renderDotsLayer(dots, both, widthPx, heightPx, land, border)
+                }
+                snapshotFlow {
+                    abs(lonMin.value - next.view.lonMin) < 1e-3 && abs(lonMax.value - next.view.lonMax) < 1e-3 &&
+                        abs(latTop.value - next.view.latTop) < 1e-3 && abs(latBottom.value - next.view.latBottom) < 1e-3
+                }.first { it }
+            }
+            dotsLayer = next
+        }
         Canvas(Modifier.fillMaxSize()) {
+            val shown = shownView()
             val baseStep = size.width / WorldDots.COLS
-            val vectorDots = landDotsFromVectors
-            if (vectorDots != null) {
-                val (step, dot) = dotPixels(dotStep(baseStep, shown.width))
-                val cols = size.width.toInt() / step
-                val rows = size.height.toInt() / step
-                vectorDots.update(shown, cols, rows, step, dot)
-                val canvas = drawContext.canvas
-                dotPaint.strokeWidth = dot.toFloat()
-                dotPaint.color = dotColor.copy(alpha = 0.26f)
-                canvas.drawRawPoints(PointMode.Points, vectorDots.landPoints, dotPaint)
-                dotPaint.color = dotColor.copy(alpha = 0.55f)
-                canvas.drawRawPoints(PointMode.Points, vectorDots.borderPoints, dotPaint)
+            val layer = dotsLayer
+            if (layer != null) {
+                val from = layer.view
+                withTransform({
+                    translate(
+                        left = ((from.lonMin - shown.lonMin) / shown.width * size.width).toFloat(),
+                        top = ((shown.latTop - from.latTop) / shown.height * size.height).toFloat(),
+                    )
+                    scale((from.width / shown.width).toFloat(), (from.height / shown.height).toFloat(), Offset.Zero)
+                }) {
+                    drawImage(layer.image, filterQuality = FilterQuality.None)
+                }
                 return@Canvas
             }
             // fallback: each dot looks up the coarse 1.5 degree land mask at its position
@@ -350,7 +405,7 @@ private fun WorldMap(
                 label = if (cluster === focused) cluster.label else null,
                 onFocused = { onFocused(cluster) },
                 onClick = { onOpen(cluster) },
-                viewport = shown,
+                viewport = shownView,
                 mapWidth = mapWidth,
                 mapHeight = mapHeight,
             )
@@ -411,7 +466,7 @@ private fun MapBubble(
     label: String?,
     onFocused: () -> Unit,
     onClick: () -> Unit,
-    viewport: MapViewport,
+    viewport: () -> MapViewport,
     mapWidth: Dp,
     mapHeight: Dp,
 ) {
@@ -421,11 +476,15 @@ private fun MapBubble(
         animationSpec = tween(ImmichFocus.AnimationMillis),
         label = "bubbleScale",
     )
-    val x = mapWidth * viewport.x(cluster.lon) - size / 2
-    val y = mapHeight * viewport.y(cluster.lat) - size / 2
     Box(
         modifier
-            .offset(x, y)
+            .offset {
+                val view = viewport()
+                IntOffset(
+                    (mapWidth.toPx() * view.x(cluster.lon) - size.toPx() / 2).roundToInt(),
+                    (mapHeight.toPx() * view.y(cluster.lat) - size.toPx() / 2).roundToInt(),
+                )
+            }
             .size(size)
             // the bubble in focus, with its name, lies above its neighbours
             .zIndex(if (selected || hasFocus) 1f else 0f)
@@ -469,7 +528,6 @@ private fun MapBubble(
         if (label != null) {
             // the name of the bubble in focus, above it (below near the top edge of the map)
             // above unless the bubble is in the top quarter of the map, where the label would be cut off
-            val above = viewport.y(cluster.lat) > 0.25f
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
@@ -480,7 +538,9 @@ private fun MapBubble(
                     // centred above (below near the top edge) the bubble, but kept inside the map
                     .layout { measurable, _ ->
                         val placeable = measurable.measure(Constraints())
-                        val bubbleLeft = x.roundToPx()
+                        val view = viewport()
+                        val above = view.y(cluster.lat) > 0.25f
+                        val bubbleLeft = (mapWidth.toPx() * view.x(cluster.lon) - size.toPx() / 2).roundToInt()
                         val bubbleSize = size.roundToPx()
                         val left = (bubbleLeft + bubbleSize / 2 - placeable.width / 2)
                             .coerceIn(0, (mapWidth.roundToPx() - placeable.width).coerceAtLeast(0)) - bubbleLeft
@@ -549,4 +609,18 @@ internal fun formatCount(count: Int): String = when {
 }
 
 private const val MAX_CARDS = 40
+/** The dot picture of one view of the map. */
+private class DotsLayer(val view: MapViewport, val image: ImageBitmap)
+
+/** Renders the dots of [view] off the main thread. */
+private suspend fun renderDotsLayer(
+    dots: LandDots, view: MapViewport, widthPx: Int, heightPx: Int, land: Int, border: Int,
+): DotsLayer = withContext(Dispatchers.Default) {
+    val (step, dot) = dotPixels(dotStep(widthPx.toFloat() / WorldDots.COLS, view.width))
+    DotsLayer(view, dots.render(view, widthPx, heightPx, step, dot, land, border).asImageBitmap())
+}
+
+internal fun MapViewport.covers(other: MapViewport, eps: Double = 1e-6): Boolean =
+    lonMin <= other.lonMin + eps && lonMax >= other.lonMax - eps && latTop >= other.latTop - eps && latBottom <= other.latBottom + eps
+
 private const val ZOOM_MILLIS = 450

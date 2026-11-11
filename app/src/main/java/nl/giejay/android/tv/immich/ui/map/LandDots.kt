@@ -64,6 +64,23 @@ internal class LandDots(vectors: MapVectors) {
         borderPoints = raster(bmp, canvas, borders, borderPaint, scaleX, scaleY, view, step, dot)
     }
 
+    /**
+     * The dots of [view] as one finished bitmap of [width] x [height] pixels, so a frame costs a single image draw
+     * instead of tens of thousands of points. Safe to call from a background thread (one view at a time).
+     */
+    @Synchronized
+    fun render(view: MapViewport, width: Int, height: Int, step: Int, dot: Int, landColor: Int, borderColor: Int): Bitmap {
+        update(view, width / step, height / step, step, dot)
+        val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val target = Canvas(out)
+        val paint = Paint().apply { isAntiAlias = false; strokeCap = Paint.Cap.SQUARE; strokeWidth = dot.toFloat() }
+        paint.color = landColor
+        target.drawPoints(landPoints, paint)
+        paint.color = borderColor
+        target.drawPoints(borderPoints, paint)
+        return out
+    }
+
     private fun raster(
         bmp: Bitmap, canvas: Canvas, path: Path, paint: Paint,
         scaleX: Float, scaleY: Float, view: MapViewport, step: Int, dot: Int,
