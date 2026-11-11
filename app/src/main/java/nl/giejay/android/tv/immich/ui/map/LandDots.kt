@@ -104,20 +104,23 @@ internal class LandDots(vectors: MapVectors) {
         val logMax = ln(max + 1.0)
         val inset = (step - dot) / 2 + dot / 2f
         val glow = Paint().also { it.isAntiAlias = true; it.style = Paint.Style.FILL }
-        val glowRadius = step * 2.2f
-        for (cell in cells.all.indices) {
-            if (cells.all[cell] == 0) continue
-            glow.color = withAlpha(if (cells.bright[cell] > 0) style.focusColor else style.otherColor, if (cells.bright[cell] > 0) 0.30 else 0.14)
-            target.drawCircle((cell % cols) * step + inset, (cell / cols) * step + inset, glowRadius, glow)
-        }
-        paint.strokeWidth = step.toFloat() // the lit dot fills its cell, larger than a land dot
+        val core = Paint().also { it.isAntiAlias = true; it.style = Paint.Style.FILL }
+        // glows first, so no glow covers a neighbouring dot
         for (cell in cells.all.indices) {
             val all = cells.all[cell]
             if (all == 0) continue
             val bright = cells.bright[cell] > 0
-            val strength = 0.7 + 0.3 * ln((if (bright) cells.bright[cell] else all) + 1.0) / logMax
-            paint.color = withAlpha(if (bright) style.focusColor else style.otherColor, strength)
-            target.drawPoint((cell % cols) * step + inset, (cell / cols) * step + inset, paint)
+            val share = ln(all + 1.0) / logMax
+            glow.color = withAlpha(if (bright) style.focusColor else style.otherColor, if (bright) 0.32 else 0.20)
+            target.drawCircle((cell % cols) * step + inset, (cell / cols) * step + inset, (step * (2.2 + 2.6 * share)).toFloat(), glow)
+        }
+        for (cell in cells.all.indices) {
+            val all = cells.all[cell]
+            if (all == 0) continue
+            val bright = cells.bright[cell] > 0
+            val share = ln(all + 1.0) / logMax
+            core.color = withAlpha(if (bright) style.focusColor else style.otherColor, 0.9 + 0.1 * share)
+            target.drawCircle((cell % cols) * step + inset, (cell / cols) * step + inset, (step * (0.75 + 0.9 * share)).toFloat(), core)
         }
     }
 

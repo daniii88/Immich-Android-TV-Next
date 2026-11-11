@@ -1,6 +1,5 @@
 package nl.giejay.android.tv.immich.baselineprofile
 
-import android.view.KeyEvent
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -161,18 +160,23 @@ internal fun MacrobenchmarkScope.visitPages() {
 }
 
 /**
- * The map page: from the rail (wherever it is focused) to the map, zoom into the biggest bubble and out again.
- * Keeps the rasteriser, the zoom animation and the bubbles in the profile. Needs places with photos on the server.
+ * The map page: from the rail (wherever it is focused) to the map, along the country cards (the lit dots and photo
+ * pins follow), into the first country and along its cards, and back out.
  */
 internal fun MacrobenchmarkScope.visitMap() {
     repeat(15) { device.pressDPadUp(); pause(150) } // top of the rail: Timeline
     repeat(11) { device.pressDPadDown(); pause(250) } // Timeline -> ... -> Map
     device.pressDPadCenter()
     pause(4_000) // markers load, the coastlines are built off the main thread
-    device.pressDPadRight() // into the map: the biggest bubble
-    pause(800)
-    repeat(2) { device.pressKeyCode(KeyEvent.KEYCODE_ZOOM_IN); pause(1_500) }
-    repeat(2) { device.pressKeyCode(KeyEvent.KEYCODE_ZOOM_OUT); pause(1_500) }
-    device.pressBack() // map -> rail
+    device.pressDPadRight() // into the cards: the country with the most photos
+    pause(1_000)
+    repeat(3) { device.pressDPadRight(); pause(800) }
+    repeat(3) { device.pressDPadLeft(); pause(800) }
+    device.pressDPadCenter() // into the country: the map glides to it
+    pause(1_500)
+    repeat(3) { device.pressDPadRight(); pause(800) }
+    device.pressBack() // back to the countries
+    pause(1_500)
+    device.pressBack() // cards -> rail
     pause(800)
 }

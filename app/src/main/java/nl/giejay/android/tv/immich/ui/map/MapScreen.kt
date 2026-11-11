@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +23,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.zIndex
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import nl.giejay.android.tv.immich.map.MapPin
+import nl.giejay.android.tv.immich.map.PinSize
+import nl.giejay.android.tv.immich.map.choosePins
+import nl.giejay.android.tv.immich.map.hangsBelow
+import nl.giejay.android.tv.immich.map.pin
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -47,7 +56,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.layout
@@ -57,7 +65,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -205,12 +212,10 @@ private class MapEntry(
     val card: Card,
     /** The country that lights up on the map. */
     val highlight: String?,
-    /** A place or region to ring on the map, with its name. */
-    val spot: MapSpot?,
+    /** The photo pin on the map that stands for the card (shown first and larger while the card has the focus). */
+    val pinKey: String?,
     val open: () -> Unit,
 )
-
-private class MapSpot(val lat: Double, val lon: Double, val name: String)
 
 private fun Resources.places(n: Int) = getQuantityString(R.plurals.map_group_places, n, n)
 private fun Resources.photos(n: Int) = getQuantityString(R.plurals.map_photos, n, n)
@@ -219,16 +224,10 @@ private fun Resources.countries(n: Int) = getQuantityString(R.plurals.map_countr
 private fun card(id: String, title: String, description: String, coverAssetId: String) =
     Card(title = title, description = description, id = id, thumbnailUrl = ApiUtil.getThumbnailUrl(coverAssetId, "thumbnail"), backgroundUrl = null)
 
-/** The middle of some places, weighted by their photos (where a region's ring goes). */
-private fun centreOf(cities: List<PlaceCity>): Pair<Double, Double> {
-    val total = cities.sumOf { it.count }.toDouble()
-    return cities.sumOf { it.lat * it.count } / total to cities.sumOf { it.lon * it.count } / total
-}
-
 private fun placeEntry(res: Resources, city: PlaceCity, withRegion: Boolean, onOpenCity: (PlaceCity) -> Unit) = MapEntry(
     card = card("city|${city.city}", city.city, listOfNotNull(city.state.takeIf { withRegion }, res.photos(city.count)).joinToString(" · "), city.coverAssetId),
     highlight = city.country,
-    spot = MapSpot(city.lat, city.lon, city.city),
+    pinKey = city.pin().key,
     open = { onOpenCity(city) },
 )
 
@@ -245,7 +244,7 @@ private fun entriesFor(
         MapEntry(
             card = card("country|${country.name}", country.name, res.places(country.cities.size) + " · " + res.photos(country.count), country.coverAssetId),
             highlight = country.name,
-            spot = null,
+            pinKey = country.pin().key,
             open = { levels.open(MapLevel.Country(country), index) },
         )
     }
@@ -255,15 +254,14 @@ private fun entriesFor(
         val all = MapEntry(
             card = card("all|${country.name}", res.getString(R.string.map_all_photos), res.photos(country.count), country.coverAssetId),
             highlight = country.name,
-            spot = null,
+            pinKey = null,
             open = { onOpenCountry(country) },
         )
         val regions = contents.regions.mapIndexed { index, region ->
-            val (lat, lon) = centreOf(region.cities)
             MapEntry(
                 card = card("region|${region.state}", region.state, res.places(region.cities.size) + " · " + res.photos(region.count), region.coverAssetId),
                 highlight = country.name,
-                spot = MapSpot(lat, lon, region.state),
+                pinKey = region.pin().key,
                 // the card index in the row: "all photos" comes first
                 open = { levels.open(MapLevel.Region(country, region), index + 1) },
             )
@@ -275,11 +273,18 @@ private fun entriesFor(
         val all = MapEntry(
             card = card("all|${region.state}", res.getString(R.string.map_all_photos), res.photos(region.count), region.coverAssetId),
             highlight = level.country.name,
-            spot = null,
+            pinKey = null,
             open = { onOpenRegion(region) },
         )
         listOf(all) + region.cities.map { placeEntry(res, it, withRegion = false, onOpenCity) }
     }
+}
+
+/** The photo pins a level can show: its countries, regions or places. */
+private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) {
+    MapLevel.World -> data.countries.map { it.pin() }
+    is MapLevel.Country -> level.country.contents().let { c -> c.regions.map { it.pin() } + c.places.map { it.pin() } }
+    is MapLevel.Region -> level.region.cities.map { it.pin() }
 }
 
 /** The part of the world the map shows on a level: the whole world, or the places of the country / region framed. */
@@ -305,6 +310,7 @@ private fun MapContent(
     val entries = remember(level, data) { entriesFor(level, data, res, levels, onOpenCity, onOpenRegion, onOpenCountry) }
     var focused by remember(level) { mutableIntStateOf(levels.focusIndex.coerceIn(0, (entries.size - 1).coerceAtLeast(0))) }
     val entry = entries.getOrNull(focused)
+    val pins = remember(level, data) { pinsOf(level, data) }
     val requester = remember(level) { FocusRequester() }
     val start = remember(level) { levels.focusIndex.coerceIn(0, (entries.size - 1).coerceAtLeast(0)) }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = start)
@@ -335,7 +341,8 @@ private fun MapContent(
                 vectors = vectors,
                 viewport = viewportOf(level),
                 highlight = entry?.highlight,
-                spot = entry?.spot,
+                pins = pins,
+                focusedPin = entry?.pinKey,
                 modifier = Modifier.size(width, width / WorldDots.ASPECT),
             )
         }
@@ -367,7 +374,8 @@ private fun WorldMap(
     vectors: MapVectors?,
     viewport: MapViewport,
     highlight: String?,
-    spot: MapSpot?,
+    pins: List<MapPin>,
+    focusedPin: String?,
     modifier: Modifier = Modifier,
 ) {
     val dotColor = MaterialTheme.colorScheme.onSurface
@@ -471,53 +479,101 @@ private fun WorldMap(
                 }
             }
         }
-        if (spot != null) SpotRing(spot, shownView, mapWidth, mapHeight)
+        // photos at the places with the most photos, never on top of each other; the focused one larger and named
+        val pinSize = with(density) { PinSize(PIN_SIZE.toPx(), (PIN_SIZE * PIN_FOCUS_SCALE).toPx(), PIN_TIP.toPx(), 6.dp.toPx(), labelPx = 30.dp.toPx()) }
+        val shownPins = remember(pins, focusedPin, viewport, widthPx, heightPx) {
+            choosePins(pins, focusedPin, viewport, widthPx.toFloat(), heightPx.toFloat(), pinSize, MAX_PINS)
+        }
+        shownPins.asReversed().forEach { pin ->
+            val focused = pin.key == focusedPin
+            // near the top edge the photo hangs below its place, so it is not cut off
+            val below = hangsBelow(viewport.y(pin.lat) * heightPx, if (focused) pinSize.focusedPhotoPx else pinSize.photoPx, pinSize.tipPx)
+            key(pin.key) { PhotoPin(pin, focused, below, shownView, mapWidth, mapHeight) }
+        }
     }
 }
 
-/** A ring around the focused place or region, with its name above it (below it near the top edge of the map). */
+/**
+ * A photo standing on its place: a rounded picture with a white frame whose bottom tip sits on the spot. The pin of the
+ * focused card is larger, framed in the accent colour and named underneath.
+ */
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-private fun SpotRing(spot: MapSpot, viewport: () -> MapViewport, mapWidth: Dp, mapHeight: Dp) {
-    val ringSize = 34.dp
-    Box(
-        Modifier
-            .offset {
+private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: () -> MapViewport, mapWidth: Dp, mapHeight: Dp) {
+    val pinSize = if (focused) PIN_SIZE * PIN_FOCUS_SCALE else PIN_SIZE
+    val frame = if (focused) MaterialTheme.colorScheme.primary else Color.White
+    val tip = PIN_TIP
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .zIndex(if (focused) 1f else 0f)
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(Constraints())
                 val view = viewport()
-                IntOffset(
-                    (mapWidth.toPx() * view.x(spot.lon) - ringSize.toPx() / 2).roundToInt(),
-                    (mapHeight.toPx() * view.y(spot.lat) - ringSize.toPx() / 2).roundToInt(),
-                )
-            }
-            .size(ringSize)
-            .drawBehind {
-                drawCircle(Color.Black.copy(alpha = 0.35f), radius = size.minDimension * 0.42f, style = Stroke(width = 5.dp.toPx()))
-                drawCircle(Color.White.copy(alpha = 0.95f), radius = size.minDimension * 0.42f, style = Stroke(width = 2.5.dp.toPx()))
+                // the tip of the frame on the place, kept inside the map sideways
+                val x = (mapWidth.toPx() * view.x(pin.lon) - placeable.width / 2f).roundToInt()
+                    .coerceIn(0, (mapWidth.roundToPx() - placeable.width).coerceAtLeast(0))
+                val spot = (mapHeight.toPx() * view.y(pin.lat)).roundToInt()
+                val y = if (below) spot else spot - (pinSize + tip).roundToPx()
+                layout(constraints.minWidth, constraints.minHeight) { placeable.place(x, y) }
             },
     ) {
-        Text(
-            text = spot.name,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier
-                // centred above the ring, below it near the top edge, and kept inside the map
-                .layout { measurable, _ ->
-                    val placeable = measurable.measure(Constraints())
-                    val view = viewport()
-                    val above = view.y(spot.lat) > 0.2f
-                    val ringLeft = (mapWidth.toPx() * view.x(spot.lon) - ringSize.toPx() / 2).roundToInt()
-                    val ring = ringSize.roundToPx()
-                    val left = (ringLeft + ring / 2 - placeable.width / 2)
-                        .coerceIn(0, (mapWidth.roundToPx() - placeable.width).coerceAtLeast(0)) - ringLeft
-                    val top = if (above) -placeable.height - 6.dp.roundToPx() else ring + 6.dp.roundToPx()
-                    layout(ring, ring) { placeable.place(left, top) }
-                }
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-        )
+        // the tip pointing at the place: under the photo, or above it when the photo hangs below its place
+        if (below) PinTip(pointsUp = true, frame)
+        Box(
+            Modifier
+                .size(pinSize)
+                .background(frame, RoundedCornerShape(12.dp))
+                .padding(if (focused) 4.dp else 3.dp),
+        ) {
+            GlideImage(
+                model = ApiUtil.getThumbnailUrl(pin.coverAssetId, "thumbnail"),
+                contentDescription = pin.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp)),
+            )
+        }
+        if (!below) PinTip(pointsUp = false, frame)
+        if (focused) {
+            Text(
+                text = pin.name,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
     }
 }
+
+/** The little triangle between a pin's photo and its place. */
+@Composable
+private fun PinTip(pointsUp: Boolean, color: Color) {
+    Canvas(Modifier.size(PIN_TIP * 2, PIN_TIP)) {
+        val path = Path().apply {
+            if (pointsUp) {
+                moveTo(0f, size.height)
+                lineTo(size.width, size.height)
+                lineTo(size.width / 2, 0f)
+            } else {
+                moveTo(0f, 0f)
+                lineTo(size.width, 0f)
+                lineTo(size.width / 2, size.height)
+            }
+            close()
+        }
+        drawPath(path, color)
+    }
+}
+
+private val PIN_SIZE = 52.dp
+private const val PIN_FOCUS_SCALE = 1.35f
+private val PIN_TIP = 7.dp
+private const val MAX_PINS = 12
 
 /** The dot picture of one view of the map. */
 private class DotsLayer(val view: MapViewport, val image: ImageBitmap)
