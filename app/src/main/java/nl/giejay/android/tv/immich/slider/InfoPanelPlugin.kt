@@ -1,9 +1,6 @@
 package nl.giejay.android.tv.immich.slider
 
-import android.content.Context
-import android.content.ContextWrapper
 import android.view.KeyEvent
-import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import android.view.View
 import androidx.compose.animation.AnimatedVisibility
@@ -14,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.lifecycle.findViewTreeLifecycleOwner
 import arrow.core.Some
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,10 +70,6 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var backDownConsumed = false
 
-    /**
-     * Back on newer Android versions (predictive back) reaches the app through the activity's back dispatcher instead
-     * of as a key event; this callback is only enabled while the panel is open and closes it.
-     */
     private var backCallback: OnBackPressedCallback? = null
 
     override fun provideControllerButton(context: ControllerPluginContext): ControllerButtonSpec {
@@ -104,7 +96,7 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
 
     override fun attachView(rootView: ConstraintLayout, state: InfoPanelState?) {
         val panelState = state ?: return
-        registerBackCallback(rootView)
+        backCallback = registerViewerBackCallback(rootView) { state?.open = false }
         val view = createOverlayView(rootView.context) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
                 AnimatedVisibility(
@@ -140,24 +132,6 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
         // nothing to release on a pause, see the note on [scope]; a running request may finish
     }
 
-    private fun registerBackCallback(rootView: View) {
-        var ctx: Context? = rootView.context
-        while (ctx is ContextWrapper && ctx !is ComponentActivity) ctx = ctx.baseContext
-        val activity = ctx as? ComponentActivity ?: return
-        backCallback?.remove()
-        val callback = object : OnBackPressedCallback(false) {
-            override fun handleOnBackPressed() {
-                state?.open = false
-                isEnabled = false
-            }
-        }
-        // added last, so it is asked first, before the navigation's own back handling; with the view's lifecycle owner
-        // it is removed when the viewer goes away and only asked while the viewer is on screen
-        val owner = rootView.findViewTreeLifecycleOwner()
-        if (owner != null) activity.onBackPressedDispatcher.addCallback(owner, callback)
-        else activity.onBackPressedDispatcher.addCallback(callback)
-        backCallback = callback
-    }
 
     override fun onKeyDown(event: KeyEvent, state: SliderKeyEventState): SliderKeyEventResult {
         val panel = this.state ?: return SliderKeyEventResult.UNHANDLED

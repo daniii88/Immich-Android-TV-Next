@@ -18,7 +18,9 @@ class SliderItem(
     private val metaData: Map<MetaDataType, MetaDataProvider>,
     val thumbnailUrl: String?,
     val isPanorama: Boolean,
-    var isFavorite: Boolean = false
+    var isFavorite: Boolean = false,
+    /** A live photo: the url of its motion video (the item itself is the still image). */
+    val livePhotoVideoUrl: String? = null
 ) {
     suspend fun get(metaDataType: MetaDataType): String? {
         return this.metaData[metaDataType]?.getValue()

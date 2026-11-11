@@ -75,9 +75,12 @@ abstract class GenericAssetFragment : VerticalCardGridFragment<Asset>() {
 
     override fun filterItems(items: List<Asset>): List<Asset> {
         return items.filter { currentFilter ==  ContentType.ALL || it.type.equals(currentFilter.toString(), ignoreCase = true) }
-            .filter(excludeByTag())
-            .filterNot { excludedAssetIds.contains(it.id) }
+            .let(::withoutExcluded)
     }
+
+    /** Leaves out what the user hides from the grids: the exclusion tag and the assets of the excluded albums. */
+    private fun withoutExcluded(items: List<Asset>): List<Asset> =
+        items.filter(excludeByTag()).filterNot { excludedAssetIds.contains(it.id) }
 
     private fun excludeByTag() = { asset: Asset ->
         asset.tags?.none { t -> t.name == "exclude_immich_tv" } ?: true

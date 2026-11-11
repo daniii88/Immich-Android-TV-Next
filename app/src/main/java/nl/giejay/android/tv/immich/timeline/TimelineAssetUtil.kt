@@ -38,7 +38,8 @@ fun TimelineAsset.toPartialAsset(): Asset = Asset(
     tags = null,
     originalPath = null,
     originalFileName = null,
-    isFavorite = isFavorite
+    isFavorite = isFavorite,
+    livePhotoVideoId = livePhotoVideoId
 )
 
 fun TimelineAsset.toSliderItem(): SliderItem = toPartialAsset().toSliderItem()

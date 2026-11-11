@@ -550,6 +550,7 @@ data object HOME_PAGE_ALBUMS : HomePageVisiblePref(R.string.albums)
 data object HOME_PAGE_PHOTOS : HomePageVisiblePref(R.string.photos)
 data object HOME_PAGE_FAVORITES : HomePageVisiblePref(R.string.favorites)
 data object HOME_PAGE_MEMORIES : HomePageVisiblePref(R.string.memories)
+data object HOME_PAGE_MAP : HomePageVisiblePref(R.string.map)
 data object HOME_PAGE_VIDEOS : HomePageVisiblePref(R.string.videos)
 data object HOME_PAGE_RANDOM : HomePageVisiblePref(R.string.random)
 data object HOME_PAGE_PEOPLE : HomePageVisiblePref(R.string.people)
@@ -569,6 +570,7 @@ data object HomePagesPrefScreen : PrefScreen(ImmichApplication.appContext!!.getS
         HOME_PAGE_PHOTOS,
         HOME_PAGE_FAVORITES,
         HOME_PAGE_MEMORIES,
+        HOME_PAGE_MAP,
         HOME_PAGE_VIDEOS,
         HOME_PAGE_RANDOM,
         HOME_PAGE_PEOPLE,

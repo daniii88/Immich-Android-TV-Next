@@ -469,3 +469,12 @@ class TimelineViewModel(
             YearMonth.from(date).atDay(1).toString()
     }
 }
+
+/**
+ * Key of the activity-scoped [TimelineViewModel]: the server settings, so a changed address or API key does not reuse a
+ * ViewModel that still talks to the old server, and the timeline mode, because the Compose timeline loads its buckets
+ * with stacks grouped and the classic one does not; switching the mode must not show the other mode's cached buckets.
+ */
+internal fun timelineViewModelKey(): String =
+    "timeline-${nl.giejay.android.tv.immich.api.ApiClientConfig.fromPrefs().hashCode()}-" +
+        if (nl.giejay.android.tv.immich.api.timelineWithStacked() == true) "stacked" else "plain"

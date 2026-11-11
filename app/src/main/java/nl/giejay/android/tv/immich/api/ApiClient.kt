@@ -9,6 +9,7 @@ import nl.giejay.android.tv.immich.api.model.Album
 import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.AssetResponse
 import nl.giejay.android.tv.immich.api.model.Folder
+import nl.giejay.android.tv.immich.api.model.MapMarker
 import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.model.Partner
 import nl.giejay.android.tv.immich.api.model.Person
@@ -17,12 +18,14 @@ import nl.giejay.android.tv.immich.api.model.SearchRequest
 import nl.giejay.android.tv.immich.api.model.UpdateAssetRequest
 import nl.giejay.android.tv.immich.api.model.SearchResponse
 import nl.giejay.android.tv.immich.api.model.SmartSearchRequest
+import nl.giejay.android.tv.immich.api.model.Stack
 import nl.giejay.android.tv.immich.api.model.TimeBucketSummary
 import nl.giejay.android.tv.immich.api.model.TimelineAsset
 import nl.giejay.android.tv.immich.api.model.toTimelineAssets
 import nl.giejay.android.tv.immich.api.service.ApiService
 import nl.giejay.android.tv.immich.api.util.ApiUtil.executeAPICall
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
+import nl.giejay.android.tv.immich.shared.prefs.CLASSIC_TIMELINE
 import nl.giejay.android.tv.immich.shared.prefs.AlbumsFilter
 import nl.giejay.android.tv.immich.shared.prefs.mergeAlbums
 import nl.giejay.android.tv.immich.shared.prefs.onlySharedAlbums
@@ -82,7 +85,8 @@ internal fun buildListAssetsSearchRequest(
     city: String? = null,
     tagIds: List<String> = emptyList(),
     isFavorite: Boolean? = null,
-    visibility: String? = null
+    visibility: String? = null,
+    country: String? = null
 ): SearchRequest = SearchRequest(
     page = page,
     size = pageCount,
@@ -93,6 +97,7 @@ internal fun buildListAssetsSearchRequest(
     takenBefore = endDate,
     takenAfter = fromDate,
     city = city,
+    country = country,
     tagIds = tagIds.ifEmpty { null },
     isFavorite = isFavorite,
     // "timeline" reproduces pre-v3 default for normal browsing; album-scoped search
@@ -102,8 +107,20 @@ internal fun buildListAssetsSearchRequest(
 )
 
 // internal so app/src/test can call it directly without instantiating ApiClient/Retrofit.
+/**
+ * The Compose timeline shows a stack as one cell (its primary asset, with the size) and opens the series; the classic
+ * timeline has no way to open it, so it keeps listing every member. Omitted (the server default) when off.
+ */
+internal fun timelineWithStacked(): Boolean? = if (PreferenceManager.get(CLASSIC_TIMELINE)) null else true
+
 // Server default for withPartners is false/omitted, so only send true when the user opted in -
 // issue #157: partner-shared photos never showed up in the Timeline because this was never wired up.
+private const val EXCLUDE_TAG_NAME = "exclude_immich_tv"
+
+/** The markers of the photos the TV app shows: those whose id is in [excluded] are left out. */
+internal fun withoutExcludedMarkers(markers: List<MapMarker>, excluded: Set<String>): List<MapMarker> =
+    if (excluded.isEmpty()) markers else markers.filterNot { it.id in excluded }
+
 internal fun resolveWithPartners(showPartnerPhotosInTimeline: Boolean): Boolean? {
     return if (showPartnerPhotosInTimeline) true else null
 }
@@ -355,11 +372,11 @@ class ApiClient(private val config: ApiClientConfig) {
     }
 
     /** The photos of one place (city) or one tag, newest first (a separate function so [listAssets] keeps its signature). */
-    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null): Either<String, AssetResponse> {
+    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null, country: String? = null): Either<String, AssetResponse> {
         val request = buildListAssetsSearchRequest(
             page = page, pageCount = pageCount, albumIds = emptyList(), order = order,
             type = if (contentType == ContentType.ALL) null else contentType.toString(),
-            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility,
+            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility, country = country,
         )
         return search(request).map { it.toAssetResponse() }
     }
@@ -439,6 +456,38 @@ class ApiClient(private val config: ApiClientConfig) {
         }.map { it.filter(excludeByTag()) }
     }
 
+    /** All photos with a location, for the map page. */
+    suspend fun getMapMarkers(): Either<String, List<MapMarker>> =
+        executeAPICall(200) { service.getMapMarkers() }.map { markers -> withoutExcludedMarkers(markers, excludedAssetIds()) }
+
+    /**
+     * What the TV app hides, as the grids do: photos tagged `exclude_immich_tv` and the photos of the albums chosen in
+     * the settings. The map's markers carry no tags, so they are filtered by id; a place whose photos are all hidden
+     * is gone from the map, and a hidden photo never becomes the picture of a place.
+     */
+    private suspend fun excludedAssetIds(): Set<String> {
+        val ids = mutableSetOf<String>()
+        val tag = executeAPICall(200) { service.listTags() }.getOrNull()?.firstOrNull { it.name == EXCLUDE_TAG_NAME }
+        if (tag != null) {
+            var page = 1
+            do {
+                val result = listAssetsByFilter(page, MAX_SEARCH_PAGE_SIZE, ContentType.ALL, tagIds = listOf(tag.id)).getOrNull() ?: break
+                ids += result.assets.map { it.id }
+                page++
+            } while (result.canLoadMore)
+        }
+        val albums = PreferenceManager.get(EXCLUDE_ASSETS_IN_ALBUM)
+        if (albums.isNotEmpty()) {
+            listAssetsFromAlbum(albums.toList(), pageCount = MAX_SEARCH_PAGE_SIZE).getOrNull()?.assets?.forEach { ids += it.id }
+        }
+        return ids
+    }
+
+    /** The assets of a stack, the primary asset first. */
+    suspend fun getStack(id: String): Either<String, Stack> = executeAPICall(200) { service.getStack(id) }.map { stack ->
+        stack.copy(assets = stack.assets.sortedBy { if (it.id == stack.primaryAssetId) 0 else 1 })
+    }
+
     suspend fun getAsset(id: String): Either<String, Asset> {
         return executeAPICall(200) { service.getAsset(id) }
     }
@@ -451,7 +500,7 @@ class ApiClient(private val config: ApiClientConfig) {
 
     suspend fun getTimeBuckets(): Either<String, List<TimeBucketSummary>> =
         executeAPICall(200) {
-            service.getTimeBuckets(withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)))
+            service.getTimeBuckets(withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)), withStacked = timelineWithStacked())
         }
 
     /**
@@ -462,7 +511,7 @@ class ApiClient(private val config: ApiClientConfig) {
      */
     suspend fun getTimeBucket(timeBucket: String): Either<String, List<TimelineAsset>> =
         executeAPICall(200) {
-            service.getTimeBucket(timeBucket, withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)))
+            service.getTimeBucket(timeBucket, withPartners = resolveWithPartners(PreferenceManager.get(SHOW_PARTNER_PHOTOS_IN_TIMELINE)), withStacked = timelineWithStacked())
         }.map { it.toTimelineAssets() }
 
     /** Every memory of the server (no date filter), for the memories page. */

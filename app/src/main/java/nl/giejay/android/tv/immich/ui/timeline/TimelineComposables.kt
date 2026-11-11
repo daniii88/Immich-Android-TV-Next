@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,7 +60,9 @@ import nl.giejay.android.tv.immich.api.util.ApiUtil
 import nl.giejay.android.tv.immich.shared.thumbhash.ThumbHashCache
 import nl.giejay.android.tv.immich.timeline.TimelineMosaicCell
 import nl.giejay.android.tv.immich.timeline.TimelineVideoDuration
+import nl.giejay.android.tv.immich.ui.card.CardBadge
 import nl.giejay.android.tv.immich.ui.theme.ImmichFocus
+import nl.giejay.android.tv.immich.ui.theme.ImmichIcons
 
 /** Building blocks of the Compose timeline (step K); the View timeline stays the default meanwhile. */
 object TimelineMosaicDefaults {
@@ -147,6 +150,15 @@ fun TimelineMosaicCell(
                     placeholder { Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                 },
             )
+        }
+        if (cell.asset.stackCount > 1 || cell.asset.livePhotoVideoId != null) {
+            Row(
+                Modifier.align(Alignment.BottomStart).padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (cell.asset.stackCount > 1) CardBadge(ImmichIcons.Stack, cell.asset.stackCount.toString())
+                if (cell.asset.livePhotoVideoId != null) CardBadge(ImmichIcons.LivePhoto, null)
+            }
         }
         if (!cell.asset.isImage) {
             VideoBadge(

@@ -358,6 +358,21 @@
     <string name="info_resolution">Resolution</string>
     <string name="info_file_size">File size</string>
     <string name="info_albums">Albums</string>
+    <string name="live_photo_play">Play live photo</string>
+    <string name="live_photo_failed">Could not play the live photo</string>
+    <string name="map">Map</string>
+    <string name="map_empty">No photos with a location yet</string>
+    <string name="map_zoom_out_hint">Back: zoom out</string>
+    <string name="map_zoom_out">Zoom out</string>
+    <string name="map_zoom_in">Zoom in</string>
+    <plurals name="map_more_places">
+        <item quantity="one">%d more place – zoom in to see it</item>
+        <item quantity="other">%d more places – zoom in to see them</item>
+    </plurals>
+    <plurals name="map_photos">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
     <string name="albums_filter">Show albums</string>
     <string name="albums_filter_text">Which albums to list: your own, the shared ones or all</string>
     <string name="albums_filter_mine">My albums</string>

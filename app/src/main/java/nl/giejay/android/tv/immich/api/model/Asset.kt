@@ -29,6 +29,13 @@ data class Tag(
     val value: String
 )
 
+/** GET stacks/{id}: the primary asset and all the assets of the stack. */
+data class Stack(
+    val id: String,
+    val primaryAssetId: String? = null,
+    val assets: List<Asset> = emptyList()
+)
+
 data class Asset(
     val id: String,
     val type: String,
@@ -41,5 +48,7 @@ data class Asset(
     val tags: List<Tag>?,
     val originalPath: String?,
     val originalFileName: String?,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    /** The video of a live photo (the photo itself is the still). */
+    val livePhotoVideoId: String? = null
 )

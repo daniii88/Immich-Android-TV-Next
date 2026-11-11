@@ -16,7 +16,7 @@ data class DemoPhoto(
     val ratio: Double get() = width.toDouble() / height
 }
 
-data class DemoPlace(val city: String, val country: String)
+data class DemoPlace(val city: String, val country: String, val lat: Double = 0.0, val lon: Double = 0.0)
 
 /** A demo tag; [value] is the full path as Immich shows it, the photos are those of the given themes. */
 data class DemoTag(val id: String, val name: String, val value: String, val themes: Set<String>)
@@ -72,11 +72,11 @@ object DemoCatalog {
 
     /** Every theme was "taken" in one city. */
     fun place(photo: DemoPhoto): DemoPlace = when (photo.theme) {
-        "mountains" -> DemoPlace("Innsbruck", "Austria")
-        "beach" -> DemoPlace("Lisbon", "Portugal")
-        "city" -> DemoPlace("Berlin", "Germany")
-        "forest" -> DemoPlace("Freiburg", "Germany")
-        else -> DemoPlace("Rome", "Italy")
+        "mountains" -> DemoPlace("Innsbruck", "Austria", 47.2692, 11.4041)
+        "beach" -> DemoPlace("Lisbon", "Portugal", 38.7223, -9.1393)
+        "city" -> DemoPlace("Berlin", "Germany", 52.52, 13.405)
+        "forest" -> DemoPlace("Freiburg", "Germany", 47.999, 7.8421)
+        else -> DemoPlace("Rome", "Italy", 41.9028, 12.4964)
     }
 
     val tags: List<DemoTag> = listOf(
