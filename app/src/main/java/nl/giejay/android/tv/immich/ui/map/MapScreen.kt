@@ -325,15 +325,12 @@ private fun WorldMap(
         // The dots of the view the map is heading for, finished off the main thread. While the view glides there, the
         // previous picture is moved and scaled to fit (pixel-sharp, no smoothing) and then swapped for the fine one:
         // rasterising the coastlines in every frame of the glide was far too slow for a TV box.
+        val land = dotColor.copy(alpha = 0.26f).toArgb()
+        val border = dotColor.copy(alpha = 0.55f).toArgb()
         val readyLayer by produceState<DotsLayer?>(null, landDotsFromVectors, viewport, widthPx, heightPx) {
             val dots = landDotsFromVectors ?: return@produceState
             if (widthPx < 1 || heightPx < 1) return@produceState
-            val (step, dot) = dotPixels(dotStep(widthPx.toFloat() / WorldDots.COLS, viewport.width))
-            val land = dotColor.copy(alpha = 0.26f).toArgb()
-            val border = dotColor.copy(alpha = 0.55f).toArgb()
-            value = withContext(Dispatchers.Default) {
-                DotsLayer(viewport, dots.render(viewport, widthPx, heightPx, step, dot, land, border).asImageBitmap())
-            }
+            value = renderDotsLayer(dots, viewport, widthPx, heightPx, land, border)
         }
         // The picture on screen. A finished one that covers the old one (zooming out, or the first) takes over at once;
         // one for a smaller view (zooming in) waits until the glide has arrived, else the margins it does not cover
@@ -343,6 +340,16 @@ private fun WorldMap(
             val next = readyLayer ?: return@LaunchedEffect
             val old = dotsLayer
             if (old != null && !next.view.covers(old.view)) {
+                if (!old.view.covers(next.view)) {
+                    // the new view reaches beyond the old one and the old beyond the new (zooming in towards an edge):
+                    // a picture of both views together covers every view of the glide
+                    val both = MapViewport(
+                        minOf(old.view.lonMin, next.view.lonMin), maxOf(old.view.lonMax, next.view.lonMax),
+                        maxOf(old.view.latTop, next.view.latTop), minOf(old.view.latBottom, next.view.latBottom),
+                    )
+                    val dots = landDotsFromVectors ?: return@LaunchedEffect
+                    dotsLayer = renderDotsLayer(dots, both, widthPx, heightPx, land, border)
+                }
                 snapshotFlow {
                     abs(lonMin.value - next.view.lonMin) < 1e-3 && abs(lonMax.value - next.view.lonMax) < 1e-3 &&
                         abs(latTop.value - next.view.latTop) < 1e-3 && abs(latBottom.value - next.view.latBottom) < 1e-3
@@ -604,6 +611,14 @@ internal fun formatCount(count: Int): String = when {
 private const val MAX_CARDS = 40
 /** The dot picture of one view of the map. */
 private class DotsLayer(val view: MapViewport, val image: ImageBitmap)
+
+/** Renders the dots of [view] off the main thread. */
+private suspend fun renderDotsLayer(
+    dots: LandDots, view: MapViewport, widthPx: Int, heightPx: Int, land: Int, border: Int,
+): DotsLayer = withContext(Dispatchers.Default) {
+    val (step, dot) = dotPixels(dotStep(widthPx.toFloat() / WorldDots.COLS, view.width))
+    DotsLayer(view, dots.render(view, widthPx, heightPx, step, dot, land, border).asImageBitmap())
+}
 
 internal fun MapViewport.covers(other: MapViewport, eps: Double = 1e-6): Boolean =
     lonMin <= other.lonMin + eps && lonMax >= other.lonMax - eps && latTop >= other.latTop - eps && latBottom <= other.latBottom + eps
