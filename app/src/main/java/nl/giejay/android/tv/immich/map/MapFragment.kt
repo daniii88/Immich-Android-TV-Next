@@ -66,14 +66,17 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, zoomBack)
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { ApiClient.getClient(ApiClientConfig.fromPrefs()).getMapMarkers() }
-            state = result.fold(
-                { MapUiState.Failed(it) },
-                { markers ->
-                    val cities = groupCities(markers)
-                    if (cities.isEmpty()) MapUiState.Empty else MapUiState.Ready(cities)
-                },
-            )
+            // the server sends every marker (hundreds of thousands in a big library): load and group them off the main
+            // thread, and keep only the places
+            state = withContext(Dispatchers.IO) {
+                ApiClient.getClient(ApiClientConfig.fromPrefs()).getMapMarkers().fold(
+                    { MapUiState.Failed(it) },
+                    { markers ->
+                        val cities = groupCities(markers)
+                        if (cities.isEmpty()) MapUiState.Empty else MapUiState.Ready(cities)
+                    },
+                )
+            }
         }
     }
 
