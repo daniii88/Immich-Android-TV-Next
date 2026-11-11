@@ -308,8 +308,6 @@
     <string name="map">Karte</string>
     <string name="map_empty">Noch keine Fotos mit Ortsangabe</string>
     <string name="map_zoom_out_hint">Zurück: herauszoomen</string>
-    <string name="map_zoom_out">Herauszoomen</string>
-    <string name="map_zoom_in">Hineinzoomen</string>
     <plurals name="map_more_places">
         <item quantity="one">%d weiterer Ort – hineinzoomen</item>
         <item quantity="other">%d weitere Orte – hineinzoomen</item>

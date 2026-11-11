@@ -363,8 +363,6 @@
     <string name="map">Map</string>
     <string name="map_empty">No photos with a location yet</string>
     <string name="map_zoom_out_hint">Back: zoom out</string>
-    <string name="map_zoom_out">Zoom out</string>
-    <string name="map_zoom_in">Zoom in</string>
     <plurals name="map_more_places">
         <item quantity="one">%d more place – zoom in to see it</item>
         <item quantity="other">%d more places – zoom in to see them</item>
