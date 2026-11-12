@@ -23,6 +23,9 @@
     <string name="media_mute">Mute</string>
     <string name="media_play">Play</string>
     <string name="media_pause">Pause</string>
+    <string name="media_unmute">Sound on</string>
+    <string name="slideshow_start">Start slideshow</string>
+    <string name="slideshow_stop">Stop slideshow</string>
     <string name="open_in_external_player">Open in external player</string>
     <string name="no_external_player_found">No external player found</string>
     <string name="cannot_play_video">Cannot play video: %1$s</string>

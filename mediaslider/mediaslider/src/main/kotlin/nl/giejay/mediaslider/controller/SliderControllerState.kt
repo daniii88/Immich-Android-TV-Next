@@ -14,7 +14,6 @@ object ControllerIds {
     const val MUTE = "mute"
     const val PREVIOUS = "previous"
     const val PLAY_PAUSE = "play_pause"
-    const val SLIDESHOW_REVERSE = "slideshow_reverse"
     const val SLIDESHOW = "slideshow"
     const val NEXT = "next"
     const val SEEK = "seek"
@@ -36,10 +35,15 @@ object ControllerLayout {
         val row = buildList {
             if (isVideo) add(ControllerEntry.BuiltIn(ControllerIds.MUTE))
             add(ControllerEntry.BuiltIn(ControllerIds.PREVIOUS))
-            if (isVideo) add(ControllerEntry.BuiltIn(ControllerIds.PLAY_PAUSE))
-            add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW_REVERSE))
-            add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
-            add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+            // video: previous / play-pause / next side by side for quick skipping, slideshow after them
+            if (isVideo) {
+                add(ControllerEntry.BuiltIn(ControllerIds.PLAY_PAUSE))
+                add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+                add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
+            } else {
+                add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
+                add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+            }
         }.toMutableList<ControllerEntry>()
         plugins.forEach { spec ->
             val entry = ControllerEntry.Plugin(spec)
@@ -60,11 +64,7 @@ object ControllerLayout {
         entries(isVideo, plugins).map { it.id } + if (isVideo) listOf(ControllerIds.SEEK) else emptyList()
 
     /** Control that gets focus when the controller opens. */
-    fun initialFocus(isVideo: Boolean, reverseSlideshow: Boolean): String = when {
-        isVideo -> ControllerIds.PLAY_PAUSE
-        reverseSlideshow -> ControllerIds.SLIDESHOW_REVERSE
-        else -> ControllerIds.SLIDESHOW
-    }
+    fun initialFocus(isVideo: Boolean): String = if (isVideo) ControllerIds.PLAY_PAUSE else ControllerIds.SLIDESHOW
 
     /**
      * Control to focus after the page changed while the controller stayed open: the same control if it
@@ -75,7 +75,6 @@ object ControllerLayout {
         previousIndex: Int,
         chain: List<String>,
         isVideo: Boolean,
-        reverseSlideshow: Boolean,
     ): String {
         if (previousId != null && previousId in chain) return previousId
         val semantic = when (previousId) {
@@ -87,7 +86,7 @@ object ControllerLayout {
         }
         if (semantic != null && semantic in chain) return semantic
         if (previousIndex >= 0 && chain.isNotEmpty()) return chain[previousIndex.coerceIn(0, chain.lastIndex)]
-        return initialFocus(isVideo, reverseSlideshow).takeIf { it in chain } ?: chain.firstOrNull() ?: ControllerIds.SLIDESHOW
+        return initialFocus(isVideo).takeIf { it in chain } ?: chain.firstOrNull() ?: ControllerIds.SLIDESHOW
     }
 }
 
@@ -102,6 +101,7 @@ class SliderControllerUiState {
     var visible by mutableStateOf(false)
     var isVideo by mutableStateOf(false)
     var isPlaying by mutableStateOf(false)
+    var slideshowPlaying by mutableStateOf(false)
     var soundOn by mutableStateOf(false)
     var positionMs by mutableLongStateOf(0L)
     var durationMs by mutableLongStateOf(0L)
@@ -115,7 +115,6 @@ class SliderControllerUiState {
     var onPrevious: () -> Unit = {}
     var onNext: () -> Unit = {}
     var onSlideshow: () -> Unit = {}
-    var onSlideshowReverse: () -> Unit = {}
     var onMute: () -> Unit = {}
     var onPlayPause: () -> Unit = {}
     var onSeekTo: (Long) -> Unit = {}

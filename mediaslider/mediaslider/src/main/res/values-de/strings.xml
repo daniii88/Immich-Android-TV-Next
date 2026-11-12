@@ -21,6 +21,9 @@
     <string name="media_mute">Stumm</string>
     <string name="media_play">Wiedergabe</string>
     <string name="media_pause">Pause</string>
+    <string name="media_unmute">Ton an</string>
+    <string name="slideshow_start">Diashow starten</string>
+    <string name="slideshow_stop">Diashow beenden</string>
     <string name="open_in_external_player">In externem Player öffnen</string>
     <string name="no_external_player_found">Kein externer Player gefunden</string>
     <string name="cannot_play_video">Das Video kann nicht abgespielt werden: %1$s</string>

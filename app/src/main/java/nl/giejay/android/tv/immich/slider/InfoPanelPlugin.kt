@@ -83,8 +83,7 @@ class InfoPanelPlugin : SliderControllerPlugin, SliderViewPlugin<InfoPanelState>
                 backCallback?.isEnabled = true
                 load(itemId)
             },
-            placement = ControllerButtonPlacement.RIGHT_OF,
-            anchorId = ControllerIds.NEXT
+            placement = ControllerButtonPlacement.END
         )
     }
 

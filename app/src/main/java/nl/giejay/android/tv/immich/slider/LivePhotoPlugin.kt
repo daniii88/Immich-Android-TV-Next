@@ -82,8 +82,7 @@ class LivePhotoPlugin : SliderControllerPlugin, SliderViewPlugin<LivePhotoState>
                 state?.playingUrl = url
                 backCallback?.isEnabled = true
             },
-            placement = ControllerButtonPlacement.RIGHT_OF,
-            anchorId = ControllerIds.NEXT
+            placement = ControllerButtonPlacement.END
         )
     }
 

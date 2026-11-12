@@ -109,6 +109,8 @@
     <string name="photo_transformation_desc">Wie Fotos an den Bildschirm angepasst werden</string>
     <string name="force_original_video">Originalvideo erzwingen</string>
     <string name="force_original_video_desc">Das Originalvideo abspielen, auch wenn eine transkodierte Version verfügbar ist</string>
+    <string name="reverse_slideshow">Diashow rückwärts abspielen</string>
+    <string name="reverse_slideshow_desc">Die Diashow-Taste geht zum vorherigen Medium (in der Timeline älter) statt zum nächsten. Standardmäßig aus.</string>
     <string name="dpad_seek_in_video">Steuerkreuz spult im Video</string>
     <string name="dpad_seek_in_video_desc">Links/Rechts spult im Video etwa 10 Sekunden, statt das Medium zu wechseln. Vor- und Zurückspulen auf der Fernbedienung spult immer. Standardmäßig aus.</string>
     <string name="load_edited_photo">Bearbeitete Fotos laden</string>

@@ -49,6 +49,9 @@ class MediaSliderController(
         private set
 
     private var _isControllerVisible = false
+
+    /** Called whenever the controller bar is shown or hidden (the view uses it to claim the Back key). */
+    var onControllerVisibleChanged: (Boolean) -> Unit = {}
     val isControllerVisible: Boolean get() = _isControllerVisible
 
     /** Currently active ExoPlayer (for the video page that is in view). */
@@ -56,6 +59,14 @@ class MediaSliderController(
         private set
 
     private var reverseSlideShowDirection = false
+    private val autoHideRunnable = Runnable { if (_isControllerVisible) hideOverlayControls() }
+
+    /** Restarts the inactivity timer; the bar hides itself after [CONTROLLER_AUTO_HIDE_MS] without a key press. */
+    private fun restartAutoHide() {
+        mainHandler.removeCallbacks(autoHideRunnable)
+        if (_isControllerVisible) mainHandler.postDelayed(autoHideRunnable, CONTROLLER_AUTO_HIDE_MS)
+    }
+
     private val goToNextAssetRunnable = Runnable { goToNextAsset() }
     private val goToPreviousAssetRunnable = Runnable { goToPreviousAsset() }
 
@@ -121,8 +132,9 @@ class MediaSliderController(
     // Slideshow
     // -------------------------------------------------------------------------
 
-    fun toggleSlideshow(showPlayIndicator: Boolean, reverseSlideShowDirection: Boolean = false) {
+    fun toggleSlideshow(showPlayIndicator: Boolean, reverseSlideShowDirection: Boolean = config.reverseSlideshow) {
         slideShowPlaying = !slideShowPlaying
+        uiState.slideshowPlaying = slideShowPlaying
         this.reverseSlideShowDirection = reverseSlideShowDirection
         val itemType = currentItemTypeOrNull()
         if (slideShowPlaying) {
@@ -217,10 +229,12 @@ class MediaSliderController(
         }
         uiState.visible = true
         _isControllerVisible = true
+        onControllerVisibleChanged(true)
+        restartAutoHide()
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(true, controllerRootView, this, config) }
 
         val isVideo = currentItemTypeOrNull() == SliderItemType.VIDEO
-        uiState.focusRequest = ControllerFocusRequest(ControllerLayout.initialFocus(isVideo, reverseSlideShowDirection))
+        uiState.focusRequest = ControllerFocusRequest(ControllerLayout.initialFocus(isVideo))
 
         if (isVideo) {
             startProgressUpdates()
@@ -231,6 +245,8 @@ class MediaSliderController(
     fun hideOverlayControls() {
         uiState.visible = false
         _isControllerVisible = false
+        onControllerVisibleChanged(false)
+        mainHandler.removeCallbacks(autoHideRunnable)
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(false, controllerRootView, this, config) }
         stopProgressUpdates()
         restorePagerFocus()
@@ -255,8 +271,12 @@ class MediaSliderController(
         uiState.isVideo = isVideo
         uiState.onPrevious = { goToPreviousAsset() }
         uiState.onNext = { goToNextAsset() }
-        uiState.onSlideshow = { toggleSlideshow(true, false) }
-        uiState.onSlideshowReverse = { toggleSlideshow(true, true) }
+        uiState.onSlideshow = {
+            toggleSlideshow(true)
+            // a running slideshow shows the photos, not the controls
+            if (slideShowPlaying) hideOverlayControls()
+        }
+        uiState.slideshowPlaying = slideShowPlaying
         uiState.isPlaying = currentPlayer?.isPlaying == true
         uiState.positionMs = 0L
         uiState.durationMs = 0L
@@ -308,12 +328,14 @@ class MediaSliderController(
         if (keepVisible) {
             uiState.visible = true
             _isControllerVisible = true
+            onControllerVisibleChanged(true)
+        restartAutoHide()
             config.controllerPlugins.forEach {
                 it.onControllerVisibilityChanged(true, controllerRootView, this, config)
             }
             val chain = ControllerLayout.focusChain(isVideo, uiState.pluginButtons)
             uiState.focusRequest = ControllerFocusRequest(
-                ControllerLayout.restoreFocus(previousFocusId, previousFocusIndex, chain, isVideo, reverseSlideShowDirection)
+                ControllerLayout.restoreFocus(previousFocusId, previousFocusIndex, chain, isVideo)
             )
             if (isVideo) {
                 startProgressUpdates()
@@ -321,6 +343,8 @@ class MediaSliderController(
         } else {
             uiState.visible = false
             _isControllerVisible = false
+            onControllerVisibleChanged(false)
+        mainHandler.removeCallbacks(autoHideRunnable)
         }
     }
 
@@ -333,6 +357,7 @@ class MediaSliderController(
     }
 
     fun dispatchKeyEvent(event: KeyEvent, superDispatch: () -> Boolean): Boolean {
+        if (isControllerVisible) restartAutoHide()
         val itemType = currentItemTypeOrNull()
         val pluginState = SliderKeyEventState(
             isControllerVisible = isControllerVisible,
@@ -502,5 +527,6 @@ class MediaSliderController(
 
     private companion object {
         const val PROGRESS_UPDATE_INTERVAL_MS = 500L
+        const val CONTROLLER_AUTO_HIDE_MS = 5_000L
     }
 }
