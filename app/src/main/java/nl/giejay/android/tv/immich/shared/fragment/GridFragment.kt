@@ -25,7 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.TransitionDrawable
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -123,10 +126,22 @@ open class GridFragment(val hideProgressBar: Boolean = false) : Fragment() {
         host.visibility = View.VISIBLE
     }
 
-    /** Sets (or clears with null) the artwork drawn dimmed behind the grid. */
+    /**
+     * Sets (or clears with null) the artwork drawn dimmed behind the grid. A new picture fades over the old one
+     * ([BACKGROUND_FADE_MILLIS]) instead of replacing it at once, so moving between photos changes the backdrop
+     * smoothly.
+     */
     protected fun setBackgroundArtwork(drawable: Drawable?) {
         pendingBackground = drawable
-        backgroundView?.setImageDrawable(drawable)
+        val view = backgroundView ?: return
+        // during a fade the view shows a TransitionDrawable; the picture it fades to is the one to fade from
+        val previous = (view.drawable as? TransitionDrawable)?.getDrawable(1) ?: view.drawable
+        if (previous === drawable) return
+        val from = previous ?: ColorDrawable(Color.TRANSPARENT)
+        val to = drawable ?: ColorDrawable(Color.TRANSPARENT)
+        val fade = TransitionDrawable(arrayOf(from, to)).apply { isCrossFadeEnabled = true }
+        view.setImageDrawable(fade)
+        fade.startTransition(BACKGROUND_FADE_MILLIS)
     }
 
     override fun onDestroyView() {
@@ -153,5 +168,10 @@ open class GridFragment(val hideProgressBar: Boolean = false) : Fragment() {
 
     fun manualUpdatePosition(position: Int) {
         manuallySelectedPosition = position
+    }
+
+    private companion object {
+        /** How long a new backdrop takes to fade over the old one: slow enough to read as a glide, not a cut. */
+        const val BACKGROUND_FADE_MILLIS = 700
     }
 }
