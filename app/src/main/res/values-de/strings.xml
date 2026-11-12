@@ -279,8 +279,6 @@
     <string name="search_loading">Suche läuft…</string>
     <string name="search_error">Die Suche ist fehlgeschlagen. Prüfe die Verbindung zu deinem Server und versuche es erneut.</string>
     <string name="search_no_results">Nichts gefunden für „%1$s“</string>
-    <string name="classic_timeline">Klassische Zeitleiste (Kompatibilität)</string>
-    <string name="classic_timeline_desc">Die ältere Zeitleiste verwenden, falls die neue auf deinem Gerät Probleme macht. Wirkt beim nächsten Öffnen der Zeitleiste.</string>
     <string name="timeline_empty_title">Noch keine Fotos</string>
     <string name="timeline_empty_body">Fotos, die du zu Immich hinzufügst, erscheinen hier.</string>
     <string name="timeline_error_title">Deine Zeitleiste konnte nicht geladen werden</string>

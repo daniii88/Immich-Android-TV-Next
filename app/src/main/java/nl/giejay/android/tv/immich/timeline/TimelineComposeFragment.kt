@@ -34,9 +34,7 @@ import nl.giejay.mediaslider.viewmodel.MediaSliderViewModel
 import kotlin.math.roundToInt
 
 /**
- * Compose version of the timeline (step K), shown instead of [TimelineFragment] while the
- * experimental switch in the debug settings is on. It shares [TimelineViewModel] with the View
- * timeline; focus handling, scrubber, video preview and opening items are still to come.
+ * The timeline page: hosts the Compose [TimelineScreen] on the activity-scoped [TimelineViewModel].
  */
 class TimelineComposeFragment : Fragment() {
     private lateinit var viewModel: TimelineViewModel

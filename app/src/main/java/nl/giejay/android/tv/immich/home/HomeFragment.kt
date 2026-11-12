@@ -35,11 +35,9 @@ import nl.giejay.android.tv.immich.tags.TagsFragment
 import nl.giejay.android.tv.immich.settings.SettingsFragment
 import nl.giejay.android.tv.immich.shared.fragment.GridFragment
 import nl.giejay.android.tv.immich.search.SearchFragment
-import nl.giejay.android.tv.immich.shared.prefs.CLASSIC_TIMELINE
 import nl.giejay.android.tv.immich.shared.prefs.HIDDEN_HOME_ITEMS
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.timeline.TimelineComposeFragment
-import nl.giejay.android.tv.immich.timeline.TimelineFragment
 import nl.giejay.android.tv.immich.ui.immichComposeView
 import nl.giejay.android.tv.immich.ui.nav.HomeNavRail
 import nl.giejay.android.tv.immich.ui.nav.NavRailItem
@@ -59,7 +57,7 @@ class HomeFragment : Fragment(), HomeNavHost {
 
     private val pages: List<Page> by lazy {
         listOf(
-            Page(getString(R.string.timeline), ImmichIcons.Timeline) { if (PreferenceManager.get(CLASSIC_TIMELINE)) TimelineFragment() else TimelineComposeFragment() },
+            Page(getString(R.string.timeline), ImmichIcons.Timeline) { TimelineComposeFragment() },
             Page(getString(R.string.search), ImmichIcons.Search) { SearchFragment() },
             Page(getString(R.string.albums), ImmichIcons.Albums) {
                 AlbumFragment().apply { arguments = bundleOf("selectionMode" to false) }

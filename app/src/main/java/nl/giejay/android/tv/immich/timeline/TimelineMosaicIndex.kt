@@ -2,7 +2,7 @@ package nl.giejay.android.tv.immich.timeline
 
 /**
  * Pure index lookups over a mosaic item list (headers + rows + optional memories).
- * [TimelineMosaicAdapter] delegates here so scrubber jumps and load-more thresholds
+ * The timeline screen asks here so scrubber jumps and load-more thresholds
  * stay unit-testable without RecyclerView.
  */
 object TimelineMosaicIndex {
