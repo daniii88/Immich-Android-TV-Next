@@ -31,7 +31,10 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.TransitionDrawable
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.compose.runtime.snapshotFlow
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.card.Card
 import nl.giejay.android.tv.immich.ui.grid.ImmichCardGrid
@@ -116,6 +119,19 @@ open class GridFragment(val hideProgressBar: Boolean = false) : Fragment() {
         if (lastFocusedIndex > 0) {
             focusIndexRequest = lastFocusedIndex
         }
+
+        // the page itself takes the focus while its grid is still empty (the user moved in before the cards were
+        // loaded); hand it to a card as soon as there is one, or D-Pad keys find nothing to move to
+        view.setOnFocusChangeListener { frame, hasFocus -> if (hasFocus) focusCardIfFrameFocused(frame) }
+        viewLifecycleOwner.lifecycleScope.launch {
+            snapshotFlow { cards.size }.collect { focusCardIfFrameFocused(view) }
+        }
+    }
+
+    /** Moves the focus from the page frame into the grid: the card the user left, else the first one. */
+    private fun focusCardIfFrameFocused(frame: View) {
+        if (!frame.isFocused || cards.isEmpty()) return
+        focusIndexRequest = lastFocusedIndex.coerceIn(0, cards.size - 1)
     }
 
     /** Shows [content] in a header slot above the grid (e.g. a search field); call from onViewCreated. */
