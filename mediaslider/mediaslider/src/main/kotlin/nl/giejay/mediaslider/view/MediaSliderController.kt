@@ -59,6 +59,14 @@ class MediaSliderController(
         private set
 
     private var reverseSlideShowDirection = false
+    private val autoHideRunnable = Runnable { if (_isControllerVisible) hideOverlayControls() }
+
+    /** Restarts the inactivity timer; the bar hides itself after [CONTROLLER_AUTO_HIDE_MS] without a key press. */
+    private fun restartAutoHide() {
+        mainHandler.removeCallbacks(autoHideRunnable)
+        if (_isControllerVisible) mainHandler.postDelayed(autoHideRunnable, CONTROLLER_AUTO_HIDE_MS)
+    }
+
     private val goToNextAssetRunnable = Runnable { goToNextAsset() }
     private val goToPreviousAssetRunnable = Runnable { goToPreviousAsset() }
 
@@ -222,6 +230,7 @@ class MediaSliderController(
         uiState.visible = true
         _isControllerVisible = true
         onControllerVisibleChanged(true)
+        restartAutoHide()
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(true, controllerRootView, this, config) }
 
         val isVideo = currentItemTypeOrNull() == SliderItemType.VIDEO
@@ -237,6 +246,7 @@ class MediaSliderController(
         uiState.visible = false
         _isControllerVisible = false
         onControllerVisibleChanged(false)
+        mainHandler.removeCallbacks(autoHideRunnable)
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(false, controllerRootView, this, config) }
         stopProgressUpdates()
         restorePagerFocus()
@@ -319,6 +329,7 @@ class MediaSliderController(
             uiState.visible = true
             _isControllerVisible = true
             onControllerVisibleChanged(true)
+        restartAutoHide()
             config.controllerPlugins.forEach {
                 it.onControllerVisibilityChanged(true, controllerRootView, this, config)
             }
@@ -333,6 +344,7 @@ class MediaSliderController(
             uiState.visible = false
             _isControllerVisible = false
             onControllerVisibleChanged(false)
+        mainHandler.removeCallbacks(autoHideRunnable)
         }
     }
 
@@ -345,6 +357,7 @@ class MediaSliderController(
     }
 
     fun dispatchKeyEvent(event: KeyEvent, superDispatch: () -> Boolean): Boolean {
+        if (isControllerVisible) restartAutoHide()
         val itemType = currentItemTypeOrNull()
         val pluginState = SliderKeyEventState(
             isControllerVisible = isControllerVisible,
@@ -514,5 +527,6 @@ class MediaSliderController(
 
     private companion object {
         const val PROGRESS_UPDATE_INTERVAL_MS = 500L
+        const val CONTROLLER_AUTO_HIDE_MS = 5_000L
     }
 }
