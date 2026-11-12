@@ -40,4 +40,31 @@ class MapViewportTest {
         assertThat(view.latTop).isAtMost(WorldDots.LAT_TOP)
     }
 
+    @Test
+    fun `the northernmost place leaves room above it for its photo, and every place stays in view`() {
+        val cities = listOf(city("Kiel", 54.3, 10.1), city("Muenchen", 48.1, 11.6), city("Aachen", 50.8, 6.1), city("Goerlitz", 51.2, 15.0))
+        val view = viewportFor(cities, topRoom = 0.3)
+        assertThat(view.y(54.3).toDouble()).isAtLeast(0.3 - 1e-6)
+        cities.forEach { assertThat(view.contains(it.lat, it.lon)).isTrue() }
+        assertThat(view.y(48.1)).isAtMost(1f)
+        // without the room the view is centred on the places
+        assertThat(viewportFor(cities).y(54.3)).isLessThan(0.3f)
+    }
+
+    @Test
+    fun `places spread from north to south make the view grow for the room above them`() {
+        val cities = listOf(city("A", 60.0, 10.0), city("B", 40.0, 10.0))
+        val view = viewportFor(cities, topRoom = 0.3)
+        assertThat(view.y(60.0).toDouble()).isAtLeast(0.3 - 1e-6)
+        assertThat(view.y(40.0).toDouble()).isAtMost(0.92 + 1e-6)
+    }
+
+    @Test
+    fun `places given as points are framed like cities`() {
+        val cities = listOf(city("Kiel", 54.3, 10.1), city("Muenchen", 48.1, 11.6))
+        assertThat(viewportFor(cities.map { it.lat to it.lon }, 0.3)).isEqualTo(viewportFor(cities, 0.3))
+        // an extra point far away (a region without named places) widens the view so its pin fits
+        val wider = viewportFor(cities.map { it.lat to it.lon } + (47.5 to 19.0), 0.3)
+        assertThat(wider.contains(47.5, 19.0)).isTrue()
+    }
 }

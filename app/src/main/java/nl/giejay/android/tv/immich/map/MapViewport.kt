@@ -39,16 +39,36 @@ data class MapViewport(val lonMin: Double, val lonMax: Double, val latTop: Doubl
     }
 }
 
-/** The view that frames [cities] with some room around them, in the proportions of the world map. */
-fun viewportFor(cities: List<PlaceCity>): MapViewport {
+/**
+ * The view that frames [cities] with some room around them, in the proportions of the world map. [topRoom] (a fraction
+ * of the view's height) is kept free above the northernmost place, so the photo pins standing on the places fit above
+ * them instead of hanging below and covering the places further south; the view grows when the places need it.
+ */
+fun viewportFor(cities: List<PlaceCity>, topRoom: Double = 0.0): MapViewport =
+    viewportFor(cities.map { it.lat to it.lon }, topRoom)
+
+/** [viewportFor] of places given as latitude / longitude pairs. */
+@JvmName("viewportForPoints")
+fun viewportFor(points: List<Pair<Double, Double>>, topRoom: Double = 0.0): MapViewport {
     val world = MapViewport.WORLD
     val aspect = world.width / world.height
-    val lonSpan = cities.maxOf { it.lon } - cities.minOf { it.lon }
-    val latSpan = cities.maxOf { it.lat } - cities.minOf { it.lat }
-    val width = min(world.width, max(MapViewport.MIN_WIDTH_DEGREES, max(lonSpan * 1.8, latSpan * 1.8 * aspect)))
+    val north = points.maxOf { it.first }
+    val south = points.minOf { it.first }
+    val lonSpan = points.maxOf { it.second } - points.minOf { it.second }
+    val latSpan = north - south
+    val room = topRoom.coerceIn(0.0, 0.6)
+    // the places fill at most what is left under the room for the pins, with a margin at the bottom
+    val heightForPins = latSpan / (1 - room - BOTTOM_MARGIN)
+    val width = min(world.width, max(MapViewport.MIN_WIDTH_DEGREES, max(max(lonSpan * 1.8, latSpan * 1.8 * aspect), heightForPins * aspect)))
+    val height = width / aspect
+    // centred when there is room enough, else moved down so the room above the northernmost place is free
+    val above = max((height - latSpan) / 2, room * height)
     return MapViewport.around(
-        lat = (cities.maxOf { it.lat } + cities.minOf { it.lat }) / 2,
-        lon = (cities.maxOf { it.lon } + cities.minOf { it.lon }) / 2,
+        lat = north + above - height / 2,
+        lon = (points.maxOf { it.second } + points.minOf { it.second }) / 2,
         width = width,
     )
 }
+
+/** The room kept under the southernmost place, as a fraction of the view's height. */
+private const val BOTTOM_MARGIN = 0.08

@@ -56,6 +56,15 @@ class MapPinsTest {
     }
 
     @Test
+    fun `a long name under the focused photo keeps the photos beside it away`() {
+        val named = size.copy(labelPx = 30f)
+        // beside the focused photo, but under its 200 px wide name
+        val pins = listOf(pin("focused", 30.0, 50.0, 1), pin("beside", 24.0, 58.0, 9))
+        assertThat(choosePins(pins, "focused", view, 1000f, 500f, named, 10).map { it.key }).containsExactly("focused", "beside")
+        assertThat(choosePins(pins, "focused", view, 1000f, 500f, named, 10, focusedLabelWidthPx = 200f).map { it.key }).containsExactly("focused")
+    }
+
+    @Test
     fun photoIsCentredOverItsPlaceAwayFromTheEdges() {
         assertThat(pinPhotoLeft(500f, 60f, 1000f, 9f, 12f)).isEqualTo(470f)
     }

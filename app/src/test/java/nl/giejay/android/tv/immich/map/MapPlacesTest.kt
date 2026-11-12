@@ -103,13 +103,13 @@ class MapPlacesTest {
         assertThat(iceland.contents().places).isEmpty()
         val germany = countries.first { it.name == "Germany" }
         assertThat(germany.count).isEqualTo(2)
-        assertThat(germany.stateCounts).containsExactly("Bayern", 2)
+        assertThat(germany.regionPhotos.mapValues { it.value.count }).containsExactly("Bayern", 2)
     }
 
     @Test
     fun `a region of a big country counts its photos without a place name too`() {
         val cities = (0..REGIONS_FROM_PLACES).map { place("Ort $it", "Germany", if (it % 2 == 0) "Bayern" else "Hessen", 1) }
-        val country = PlaceCountry("Germany", cities, count = cities.size + 10, stateCounts = mapOf("Bayern" to 22, "Hessen" to 13))
+        val country = PlaceCountry("Germany", cities, count = cities.size + 10, regionPhotos = mapOf("Bayern" to RegionPhotos(22, "x", 0.0, 0.0), "Hessen" to RegionPhotos(13, "y", 0.0, 0.0)))
         assertThat(country.contents().regions.map { it.state to it.count }).containsExactly("Bayern" to 22, "Hessen" to 13).inOrder()
     }
 
@@ -124,6 +124,21 @@ class MapPlacesTest {
         val big = PlaceCountry("Germany", cities).contents()
         assertThat(big.regions.map { it.state }).containsExactly("Bayern", "Hessen")
         assertThat(big.places.map { it.city }).containsExactly("Irgendwo")
+    }
+
+    @Test
+    fun `a region of a big country where no photo has a place name still gets a card`() {
+        val cities = (0..REGIONS_FROM_PLACES).map { place("Ort $it", "Germany", if (it % 2 == 0) "Bayern" else "Hessen", 1) }
+        val country = PlaceCountry(
+            "Germany", cities, count = cities.size + 4,
+            regionPhotos = mapOf("Bayern" to RegionPhotos(13, "b", 0.0, 0.0), "Hessen" to RegionPhotos(13, "h", 0.0, 0.0), "Saarland" to RegionPhotos(4, "s", 49.2, 7.0)),
+        )
+        val saarland = country.contents().regions.single { it.state == "Saarland" }
+        assertThat(saarland.cities).isEmpty()
+        assertThat(saarland.count).isEqualTo(4)
+        assertThat(saarland.coverAssetId).isEqualTo("s")
+        assertThat(saarland.pin().lat).isWithin(1e-9).of(49.2)
+        assertThat(country.contents().regions.map { it.state }).containsExactly("Bayern", "Hessen", "Saarland").inOrder()
     }
 
     @Test

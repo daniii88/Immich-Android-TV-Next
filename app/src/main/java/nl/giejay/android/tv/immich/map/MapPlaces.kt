@@ -42,10 +42,13 @@ fun groupCities(markers: List<MapMarker>): List<PlaceCity> =
         }
         .sortedByDescending { it.count }
 
+/** The photos of one region of a country, those without a place name too: how many, one of them and where it is. */
+data class RegionPhotos(val count: Int, val coverAssetId: String, val lat: Double, val lon: Double)
+
 /**
  * One country: its places (the one with the most photos first) and all its photos, those without a place name too, so
  * a country visited only in places without a name still has a card, and its count matches what its search finds.
- * [stateCounts] are the photos per region, likewise with the unnamed places. The pin stands at [lat] / [lon]: the
+ * [regionPhotos] are the photos per region, likewise with the unnamed places. The pin stands at [lat] / [lon]: the
  * biggest place, or a photo when it has none.
  */
 data class PlaceCountry(
@@ -56,7 +59,7 @@ data class PlaceCountry(
     val coverAssetId: String = cities.first().coverAssetId,
     val lat: Double = cities.first().lat,
     val lon: Double = cities.first().lon,
-    val stateCounts: Map<String, Int> = emptyMap(),
+    val regionPhotos: Map<String, RegionPhotos> = emptyMap(),
 )
 
 /** The countries of [markers] with their places among [cities], the one with the most photos first. */
@@ -74,24 +77,27 @@ fun countriesOf(markers: List<MapMarker>, cities: List<PlaceCity>): List<PlaceCo
                 coverAssetId = places.firstOrNull()?.coverAssetId ?: first.id,
                 lat = places.firstOrNull()?.lat ?: first.lat,
                 lon = places.firstOrNull()?.lon ?: first.lon,
-                stateCounts = group.mapNotNull { it.state.cleaned() }.groupingBy { it }.eachCount(),
+                regionPhotos = group.filter { it.state.cleaned() != null }.groupBy { it.state.cleaned()!! }
+                    .mapValues { (_, photos) -> photos.first().let { RegionPhotos(photos.size, it.id, it.lat, it.lon) } },
             )
         }
         .sortedByDescending { it.count }
 }
 
-/** The places of one region (state) of a country. */
+/**
+ * One region (state) of a country: its places and all its photos (those without a place name too, they are part of
+ * what its search finds). A region whose photos have no place names has no places; its pin stands at [lat] / [lon].
+ */
 data class MapRegion(
     val state: String,
     val country: String?,
     val cities: List<PlaceCity>,
-    /** All its photos, those without a place name too (they are part of what its search finds). */
     val count: Int = cities.sumOf { it.count },
-) {
-
-    /** A photo of the biggest place, for the thumbnail. */
-    val coverAssetId: String get() = cities.first().coverAssetId
-}
+    /** A photo of the biggest place (or any photo of the region), for the thumbnail. */
+    val coverAssetId: String = cities.first().coverAssetId,
+    val lat: Double = cities.first().lat,
+    val lon: Double = cities.first().lon,
+)
 
 /**
  * The regions of [cities], the one with the most photos first. Places without a region name are not part of any
@@ -110,11 +116,18 @@ const val REGIONS_FROM_PLACES = 25
 data class CountryContents(val regions: List<MapRegion>, val places: List<PlaceCity>)
 
 fun PlaceCountry.contents(): CountryContents {
-    val regions = if (cities.size > REGIONS_FROM_PLACES) {
-        regionsOf(cities).map { it.copy(count = maxOf(it.count, stateCounts[it.state] ?: 0)) }.sortedByDescending { it.count }
-    } else {
-        emptyList()
-    }
+    if (cities.size <= REGIONS_FROM_PLACES) return CountryContents(emptyList(), cities)
+    // the regions of the places, counting all their photos, and the regions where no photo has a place name
+    val named = regionsOf(cities).associateBy { it.state }
+    val regions = (named.keys + regionPhotos.keys).map { state ->
+        val region = named[state]
+        val photos = regionPhotos[state]
+        when {
+            region == null -> MapRegion(state, name, emptyList(), photos!!.count, photos.coverAssetId, photos.lat, photos.lon)
+            photos == null -> region
+            else -> region.copy(count = maxOf(region.count, photos.count))
+        }
+    }.sortedByDescending { it.count }
     return if (regions.size >= 2) CountryContents(regions, cities.filter { it.state == null }) else CountryContents(emptyList(), cities)
 }
 

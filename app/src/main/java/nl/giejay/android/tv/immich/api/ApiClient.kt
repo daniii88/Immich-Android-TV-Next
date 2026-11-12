@@ -87,7 +87,8 @@ internal fun buildListAssetsSearchRequest(
     isFavorite: Boolean? = null,
     visibility: String? = null,
     country: String? = null,
-    state: String? = null
+    state: String? = null,
+    exactPlace: Boolean = false
 ): SearchRequest = SearchRequest(
     page = page,
     size = pageCount,
@@ -105,7 +106,8 @@ internal fun buildListAssetsSearchRequest(
     // "timeline" reproduces pre-v3 default for normal browsing; album-scoped search
     // omits it so archived-in-album assets keep showing (VIS-02)
     // an explicit visibility (the archive) wins over the browsing default
-    visibility = visibility ?: if (albumIds.isEmpty()) "timeline" else null
+    visibility = visibility ?: if (albumIds.isEmpty()) "timeline" else null,
+    exactPlace = exactPlace
 )
 
 // internal so app/src/test can call it directly without instantiating ApiClient/Retrofit.
@@ -158,7 +160,7 @@ class ApiClient(private val config: ApiClientConfig) {
 
     private val retrofit = Retrofit.Builder()
         .client(ApiClientFactory.getClient(config.disableSslVerification, config.apiKey, config.debugMode, config.proxyUser, config.proxyPassword))
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(SearchRequestJson.gson))
         .baseUrl("${config.hostName}/api/")
         .build()
 
@@ -374,11 +376,11 @@ class ApiClient(private val config: ApiClientConfig) {
     }
 
     /** The photos of one place (city) or one tag, newest first (a separate function so [listAssets] keeps its signature). */
-    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null, country: String? = null, state: String? = null): Either<String, AssetResponse> {
+    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null, country: String? = null, state: String? = null, exactPlace: Boolean = false): Either<String, AssetResponse> {
         val request = buildListAssetsSearchRequest(
             page = page, pageCount = pageCount, albumIds = emptyList(), order = order,
             type = if (contentType == ContentType.ALL) null else contentType.toString(),
-            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility, country = country, state = state,
+            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility, country = country, state = state, exactPlace = exactPlace,
         )
         return search(request).map { it.toAssetResponse() }
     }

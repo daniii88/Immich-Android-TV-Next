@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.zIndex
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -299,16 +300,22 @@ private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) 
 
 /**
  * The part of the world the map shows on a level: the whole world, or the places of the country / region framed (a
- * country without named places around its photo).
+ * country or region without named places around its photo), with [topRoom] free above them for the pins.
  */
-private fun viewportOf(level: MapLevel): MapViewport = when (level) {
+private fun viewportOf(level: MapLevel, topRoom: Double): MapViewport = when (level) {
     MapLevel.World -> MapViewport.WORLD
     is MapLevel.Country -> if (level.country.cities.isEmpty()) {
         MapViewport.around(level.country.lat, level.country.lon, MapViewport.MIN_WIDTH_DEGREES)
     } else {
-        viewportFor(level.country.cities)
+        // the places, and the regions where no photo has a place name: their pins must be in view too
+        val unnamed = level.country.contents().regions.filter { it.cities.isEmpty() }.map { it.lat to it.lon }
+        viewportFor(level.country.cities.map { it.lat to it.lon } + unnamed, topRoom)
     }
-    is MapLevel.Region -> viewportFor(level.region.cities)
+    is MapLevel.Region -> if (level.region.cities.isEmpty()) {
+        MapViewport.around(level.region.lat, level.region.lon, MapViewport.MIN_WIDTH_DEGREES)
+    } else {
+        viewportFor(level.region.cities, topRoom)
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -348,18 +355,21 @@ private fun MapContent(
         is MapLevel.Country -> Title(level.country.name, res.placesAndPhotos(level.country.cities.size, level.country.count))
         is MapLevel.Region -> Title(
             level.region.state,
-            listOf(level.country.name, res.places(level.region.cities.size), res.photos(level.region.count)).joinToString(" · "),
+            level.country.name + " · " + res.placesAndPhotos(level.region.cities.size, level.region.count),
         )
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // the biggest rectangle of the map's proportions that fits the room above the cards
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             val width = minOf(maxWidth, maxHeight * WorldDots.ASPECT)
+            // room for the focused photo above the northernmost place (with its tip and a little air)
+            val topRoom = ((PIN_SIZE * PIN_FOCUS_SCALE + PIN_TIP + 12.dp) / (width / WorldDots.ASPECT)).toDouble()
+            val viewport = remember(level, topRoom) { viewportOf(level, topRoom) }
             WorldMap(
                 footprint = data.footprint,
                 landDots = landDots,
                 vectors = vectors,
-                viewport = viewportOf(level),
+                viewport = viewport,
                 highlight = entry?.highlight,
                 pins = pins,
                 focusedPin = entry?.pinKey,
@@ -505,8 +515,15 @@ private fun WorldMap(
         }
         // photos at the places with the most photos, never on top of each other; the focused one larger and named
         val pinSize = with(density) { PinSize(PIN_SIZE.toPx(), (PIN_SIZE * PIN_FOCUS_SCALE).toPx(), PIN_TIP.toPx(), 6.dp.toPx(), labelPx = 30.dp.toPx()) }
-        val shownPins = remember(pins, focusedPin, viewport, widthPx, heightPx) {
-            choosePins(pins, focusedPin, viewport, widthPx.toFloat(), heightPx.toFloat(), pinSize, MAX_PINS)
+        // the focused name is often wider than its photo; keep the other photos clear of it
+        val labelStyle = MaterialTheme.typography.labelLarge
+        val textMeasurer = rememberTextMeasurer()
+        val focusedName = pins.firstOrNull { it.key == focusedPin }?.name
+        val labelWidth = remember(focusedName, labelStyle) {
+            focusedName?.let { textMeasurer.measure(it, labelStyle, maxLines = 1, softWrap = false).size.width + with(density) { (PIN_LABEL_PADDING * 2).toPx() } } ?: 0f
+        }
+        val shownPins = remember(pins, focusedPin, viewport, widthPx, heightPx, labelWidth) {
+            choosePins(pins, focusedPin, viewport, widthPx.toFloat(), heightPx.toFloat(), pinSize, MAX_PINS, labelWidth)
         }
         shownPins.asReversed().forEach { pin ->
             val focused = pin.key == focusedPin
@@ -558,7 +575,7 @@ private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: ()
                     modifier = Modifier
                         .padding(top = 4.dp)
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                        .padding(horizontal = PIN_LABEL_PADDING, vertical = 2.dp),
                 )
             }
         },
@@ -619,6 +636,7 @@ private val PIN_SIZE = 52.dp
 private const val PIN_FOCUS_SCALE = 1.35f
 private val PIN_TIP = 9.dp
 private val PIN_CORNER = 12.dp
+private val PIN_LABEL_PADDING = 8.dp
 
 /** The dark edge of a pin, so its white frame and tip stand out from the bright dots and glows under them. */
 private val PIN_EDGE = Color(0xB3101418)

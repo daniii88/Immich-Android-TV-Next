@@ -21,7 +21,13 @@ data class SearchRequest(val page: Int? = 0,
                          /** null = not sent */
                          val tagIds: List<String>? = null,
                          /** true = favorites only; null = not sent */
-                         val isFavorite: Boolean? = null
+                         val isFavorite: Boolean? = null,
+                         /**
+                          * A place exactly: a null [state] or [country] is sent as null, which the server reads as
+                          * "photos without one" (otherwise null fields are not sent and mean "any"). Not a field of
+                          * the request itself, see [SearchRequestJson].
+                          */
+                         @Transient val exactPlace: Boolean = false
 )
 
 /** POST /search/smart: CLIP search by image content, needs machine learning on the server. */
