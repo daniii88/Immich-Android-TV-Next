@@ -10,8 +10,8 @@ import com.zeuskartik.mediaslider.R
 import nl.giejay.mediaslider.controller.ControllerIds
 
 class ExternalPlayerButtonControllerPlugin(
-    private val placement: ControllerButtonPlacement = ControllerButtonPlacement.RIGHT_OF,
-    private val anchorId: String = ControllerIds.SLIDESHOW
+    private val placement: ControllerButtonPlacement = ControllerButtonPlacement.END,
+    private val anchorId: String? = null
 ) : SliderControllerPlugin {
     override fun provideControllerButton(context: ControllerPluginContext): ControllerButtonSpec? {
         val canOpenExternally = context.isVideo && !context.sliderItem.url.isNullOrBlank()

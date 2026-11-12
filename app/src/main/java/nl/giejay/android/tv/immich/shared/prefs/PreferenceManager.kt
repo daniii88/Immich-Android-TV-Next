@@ -204,10 +204,11 @@ object PreferenceManager {
         val remoteControlsPlugin = MediaRemoteControlsKeyEventPlugin()
         return EnabledSliderPlugins(
             controllerPlugins = listOf(
-                FavoriteButtonControllerPlugin(favoriteService, scope),
+                // button order on the right of the controller: external player, live photo, info, favorite
                 ExternalPlayerButtonControllerPlugin(),
-                infoPanelPlugin,
                 livePhotoPlugin,
+                infoPanelPlugin,
+                FavoriteButtonControllerPlugin(favoriteService, scope),
                 metadataPlugin
             ),
             viewPlugins = listOf(metadataPlugin, DateOverlayViewPlugin(), infoPanelPlugin, livePhotoPlugin),

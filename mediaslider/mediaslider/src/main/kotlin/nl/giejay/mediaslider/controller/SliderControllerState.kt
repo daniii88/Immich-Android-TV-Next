@@ -35,9 +35,15 @@ object ControllerLayout {
         val row = buildList {
             if (isVideo) add(ControllerEntry.BuiltIn(ControllerIds.MUTE))
             add(ControllerEntry.BuiltIn(ControllerIds.PREVIOUS))
-            if (isVideo) add(ControllerEntry.BuiltIn(ControllerIds.PLAY_PAUSE))
-            add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
-            add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+            // video: previous / play-pause / next side by side for quick skipping, slideshow after them
+            if (isVideo) {
+                add(ControllerEntry.BuiltIn(ControllerIds.PLAY_PAUSE))
+                add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+                add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
+            } else {
+                add(ControllerEntry.BuiltIn(ControllerIds.SLIDESHOW))
+                add(ControllerEntry.BuiltIn(ControllerIds.NEXT))
+            }
         }.toMutableList<ControllerEntry>()
         plugins.forEach { spec ->
             val entry = ControllerEntry.Plugin(spec)

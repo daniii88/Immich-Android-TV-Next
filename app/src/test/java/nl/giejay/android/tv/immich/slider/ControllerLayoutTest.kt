@@ -25,7 +25,7 @@ class ControllerLayoutTest {
         val chain = ControllerLayout.focusChain(isVideo = true, plugins = emptyList())
         assertThat(chain).containsExactly(
             ControllerIds.MUTE, ControllerIds.PREVIOUS, ControllerIds.PLAY_PAUSE,
-            ControllerIds.SLIDESHOW, ControllerIds.NEXT, ControllerIds.SEEK,
+            ControllerIds.NEXT, ControllerIds.SLIDESHOW, ControllerIds.SEEK,
         ).inOrder()
     }
 

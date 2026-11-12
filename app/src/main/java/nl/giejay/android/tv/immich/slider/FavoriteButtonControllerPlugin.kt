@@ -13,8 +13,8 @@ import nl.giejay.mediaslider.plugin.SliderControllerPlugin
 class FavoriteButtonControllerPlugin(
     private val favoriteService: FavoriteService,
     private val scope: CoroutineScope,
-    private val placement: ControllerButtonPlacement = ControllerButtonPlacement.RIGHT_OF,
-    private val anchorId: String = ControllerIds.PLAY_PAUSE
+    private val placement: ControllerButtonPlacement = ControllerButtonPlacement.END,
+    private val anchorId: String? = null
 ) : SliderControllerPlugin {
     override fun provideControllerButton(context: ControllerPluginContext): ControllerButtonSpec? {
         if (context.hasSecondaryItem) {
