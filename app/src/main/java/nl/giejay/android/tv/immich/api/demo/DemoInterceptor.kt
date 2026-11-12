@@ -104,6 +104,10 @@ class DemoInterceptor(private val openAsset: (String) -> InputStream) : Intercep
         val name = body.string("originalFileName")?.lowercase()
         val description = body.string("description")?.lowercase()
         val city = body.string("city")
+        // a sent null means "without one", like the server; no demo photo lacks a country, none has a region
+        val countrySent = body.has("country")
+        val country = body.string("country")
+        val stateOk = !body.has("state") || body.string("state") == null
         // the demo library has no archived photos
         val archivedOnly = body.string("visibility") == "archive"
         val favoritesOnly = body.get("isFavorite")?.takeIf { !it.isJsonNull }?.asBoolean == true
@@ -115,6 +119,7 @@ class DemoInterceptor(private val openAsset: (String) -> InputStream) : Intercep
                 !archivedOnly &&
                 (!favoritesOnly || photo.id in DemoCatalog.favorites) &&
                 (city == null || DemoCatalog.place(photo).city.equals(city, ignoreCase = true)) &&
+                (!countrySent || (country != null && DemoCatalog.place(photo).country.equals(country, ignoreCase = true))) && stateOk &&
                 (tagIds.isEmpty() || DemoCatalog.tags.any { it.id in tagIds && photo.theme in it.themes }) &&
                 (type == null || type == "IMAGE") &&
                 (name == null || photo.file.lowercase().contains(name)) &&

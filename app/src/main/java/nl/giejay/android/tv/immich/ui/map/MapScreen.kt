@@ -300,7 +300,7 @@ private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) 
 
 /**
  * The part of the world the map shows on a level: the whole world, or the places of the country / region framed (a
- * country without named places around its photo), with [topRoom] free above them for the pins.
+ * country or region without named places around its photo), with [topRoom] free above them for the pins.
  */
 private fun viewportOf(level: MapLevel, topRoom: Double): MapViewport = when (level) {
     MapLevel.World -> MapViewport.WORLD
@@ -309,7 +309,11 @@ private fun viewportOf(level: MapLevel, topRoom: Double): MapViewport = when (le
     } else {
         viewportFor(level.country.cities, topRoom)
     }
-    is MapLevel.Region -> viewportFor(level.region.cities, topRoom)
+    is MapLevel.Region -> if (level.region.cities.isEmpty()) {
+        MapViewport.around(level.region.lat, level.region.lon, MapViewport.MIN_WIDTH_DEGREES)
+    } else {
+        viewportFor(level.region.cities, topRoom)
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -349,7 +353,7 @@ private fun MapContent(
         is MapLevel.Country -> Title(level.country.name, res.placesAndPhotos(level.country.cities.size, level.country.count))
         is MapLevel.Region -> Title(
             level.region.state,
-            listOf(level.country.name, res.places(level.region.cities.size), res.photos(level.region.count)).joinToString(" · "),
+            level.country.name + " · " + res.placesAndPhotos(level.region.cities.size, level.region.count),
         )
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {

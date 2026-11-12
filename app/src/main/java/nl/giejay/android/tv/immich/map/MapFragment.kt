@@ -96,7 +96,9 @@ class MapFragment : Fragment() {
 
     private fun openCity(place: PlaceCity) {
         findNavController().navigate(
-            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(PlacesFragment.FILTER_CITY, place.city, place.city, place.country, place.state),
+            HomeFragmentDirections.actionHomeFragmentToFilteredAssetsFragment(
+                PlacesFragment.FILTER_CITY, place.city, place.city, place.country, place.state, filterExactPlace = true,
+            ),
         )
     }
 }

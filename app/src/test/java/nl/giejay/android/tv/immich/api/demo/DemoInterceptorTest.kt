@@ -120,6 +120,18 @@ class DemoInterceptorTest {
     }
 
     @Test
+    fun `a country or region search finds only the photos there, like the server`() {
+        val germany = parse<SearchResponse>(post("search/metadata", """{"country":"Germany"}""").body!!.string())
+        assertThat(germany.assets.items).isNotEmpty()
+        assertThat(germany.assets.items.map { it.exifInfo?.country }.distinct()).containsExactly("Germany")
+        // no demo photo has a region: a region finds nothing, "without a region" (null) finds the city's photos
+        assertThat(parse<SearchResponse>(post("search/metadata", """{"state":"Bavaria"}""").body!!.string()).assets.items).isEmpty()
+        val berlin = parse<SearchResponse>(post("search/metadata", """{"city":"Berlin","state":null,"country":"Germany"}""").body!!.string())
+        assertThat(berlin.assets.items).hasSize(4)
+        assertThat(parse<SearchResponse>(post("search/metadata", """{"city":"Berlin","country":null}""").body!!.string()).assets.items).isEmpty()
+    }
+
+    @Test
     fun `tags are listed and a tag filter returns only its photos`() {
         val tags = parse<Array<TagInfo>>(get("tags").body!!.string()).toList()
         assertThat(tags.map { it.value }).containsExactly("Holidays", "Trips/City life")
