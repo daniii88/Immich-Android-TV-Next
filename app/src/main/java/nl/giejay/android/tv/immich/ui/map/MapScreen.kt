@@ -307,7 +307,9 @@ private fun viewportOf(level: MapLevel, topRoom: Double): MapViewport = when (le
     is MapLevel.Country -> if (level.country.cities.isEmpty()) {
         MapViewport.around(level.country.lat, level.country.lon, MapViewport.MIN_WIDTH_DEGREES)
     } else {
-        viewportFor(level.country.cities, topRoom)
+        // the places, and the regions where no photo has a place name: their pins must be in view too
+        val unnamed = level.country.contents().regions.filter { it.cities.isEmpty() }.map { it.lat to it.lon }
+        viewportFor(level.country.cities.map { it.lat to it.lon } + unnamed, topRoom)
     }
     is MapLevel.Region -> if (level.region.cities.isEmpty()) {
         MapViewport.around(level.region.lat, level.region.lon, MapViewport.MIN_WIDTH_DEGREES)

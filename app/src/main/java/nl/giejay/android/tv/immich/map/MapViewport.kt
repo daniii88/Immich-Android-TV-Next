@@ -44,12 +44,17 @@ data class MapViewport(val lonMin: Double, val lonMax: Double, val latTop: Doubl
  * of the view's height) is kept free above the northernmost place, so the photo pins standing on the places fit above
  * them instead of hanging below and covering the places further south; the view grows when the places need it.
  */
-fun viewportFor(cities: List<PlaceCity>, topRoom: Double = 0.0): MapViewport {
+fun viewportFor(cities: List<PlaceCity>, topRoom: Double = 0.0): MapViewport =
+    viewportFor(cities.map { it.lat to it.lon }, topRoom)
+
+/** [viewportFor] of places given as latitude / longitude pairs. */
+@JvmName("viewportForPoints")
+fun viewportFor(points: List<Pair<Double, Double>>, topRoom: Double = 0.0): MapViewport {
     val world = MapViewport.WORLD
     val aspect = world.width / world.height
-    val north = cities.maxOf { it.lat }
-    val south = cities.minOf { it.lat }
-    val lonSpan = cities.maxOf { it.lon } - cities.minOf { it.lon }
+    val north = points.maxOf { it.first }
+    val south = points.minOf { it.first }
+    val lonSpan = points.maxOf { it.second } - points.minOf { it.second }
     val latSpan = north - south
     val room = topRoom.coerceIn(0.0, 0.6)
     // the places fill at most what is left under the room for the pins, with a margin at the bottom
@@ -60,7 +65,7 @@ fun viewportFor(cities: List<PlaceCity>, topRoom: Double = 0.0): MapViewport {
     val above = max((height - latSpan) / 2, room * height)
     return MapViewport.around(
         lat = north + above - height / 2,
-        lon = (cities.maxOf { it.lon } + cities.minOf { it.lon }) / 2,
+        lon = (points.maxOf { it.second } + points.minOf { it.second }) / 2,
         width = width,
     )
 }

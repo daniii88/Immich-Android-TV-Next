@@ -58,4 +58,13 @@ class MapViewportTest {
         assertThat(view.y(60.0).toDouble()).isAtLeast(0.3 - 1e-6)
         assertThat(view.y(40.0).toDouble()).isAtMost(0.92 + 1e-6)
     }
+
+    @Test
+    fun `places given as points are framed like cities`() {
+        val cities = listOf(city("Kiel", 54.3, 10.1), city("Muenchen", 48.1, 11.6))
+        assertThat(viewportFor(cities.map { it.lat to it.lon }, 0.3)).isEqualTo(viewportFor(cities, 0.3))
+        // an extra point far away (a region without named places) widens the view so its pin fits
+        val wider = viewportFor(cities.map { it.lat to it.lon } + (47.5 to 19.0), 0.3)
+        assertThat(wider.contains(47.5, 19.0)).isTrue()
+    }
 }
