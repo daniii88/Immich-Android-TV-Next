@@ -492,11 +492,6 @@ data object DEBUG_MODE : BooleanPref(false,
     ImmichApplication.appContext!!.getString(R.string.enable_debug_mode),
     ImmichApplication.appContext!!.getString(R.string.enable_debug_mode_desc))
 
-/** Compatibility option: the timeline is Compose by default; this switches back to the older View based one. */
-data object CLASSIC_TIMELINE : BooleanPref(false,
-    ImmichApplication.appContext!!.getString(R.string.classic_timeline),
-    ImmichApplication.appContext!!.getString(R.string.classic_timeline_desc))
-
 /** The last searches (see SearchHistory); not shown in any settings screen. */
 data object SEARCH_HISTORY : StringPref("",
     "Search history",
@@ -781,7 +776,7 @@ data object HomeScreenChannelsPrefScreen : PrefScreen(ImmichApplication.appConte
 )
 
 data object DebugPrefScreen : PrefScreen(ImmichApplication.appContext!!.getString(R.string.debug_settings), "debug",
-    children = listOf(PrefCategory("", listOf(DEBUG_MODE, CLASSIC_TIMELINE, USER_ID))), { prefManager ->
+    children = listOf(PrefCategory("", listOf(DEBUG_MODE, USER_ID))), { prefManager ->
         prefManager.findPreference<Preference>(USER_ID.key())?.summary = PreferenceManager.get(USER_ID)
     })
 

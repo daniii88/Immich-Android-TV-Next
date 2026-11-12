@@ -2,7 +2,7 @@ package nl.giejay.android.tv.immich.timeline
 
 /**
  * Pure leave-off / restore targeting for Timeline menu and slider round-trips.
- * Keeps sticky targets stable against stray Leanback focus before restore runs.
+ * Keeps sticky targets stable against stray focus before restore runs.
  */
 object TimelineLeaveOff {
 
@@ -123,20 +123,20 @@ object TimelineLeaveOff {
     }
 
     /**
-     * Hold [TimelineMosaicLayoutManager.suppressFocusScroll] through cell focus scale (120ms)
-     * so Leanback cannot inch the page after unlock.
+     * Hold the focus-driven scrolling off through the cell focus scale (120ms)
+     * so the page cannot inch after unlock.
      */
     const val MOSAIC_FOCUS_LOCK_RELEASE_MS = 160L
 
     /**
      * While slider leave-off has the viewport pinned (`allowScrollAdjust == false`),
-     * [TimelineFragment.bindDays] must not `scrollToPositionWithOffset` — that races focus
+     * binding the days must not scroll to an offset — that races focus
      * restore after the slider.
      */
     fun shouldDeferBindAnchorScroll(allowScrollAdjust: Boolean): Boolean = !allowScrollAdjust
 
     /**
-     * After returning from the mosaic slider, Leanback often restores focus to the cell that
+     * After returning from the mosaic slider, the system often restores focus to the cell that
      * *opened* the slider. That must not skip leave-off when [pendingResumeAssetId] still
      * points at the asset last viewed in the slider.
      */

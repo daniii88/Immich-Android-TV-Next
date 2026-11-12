@@ -1,6 +1,8 @@
 package nl.giejay.android.tv.immich.timeline
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import nl.giejay.android.tv.immich.api.ApiClient
 import androidx.lifecycle.viewModelScope
 import arrow.core.Either
 import kotlinx.coroutines.Deferred
@@ -72,7 +74,7 @@ class TimelineViewModel(
 
     private val inFlight = ConcurrentHashMap<String, Deferred<Either<String, List<TimelineAsset>>>>()
 
-    /** Survives TimelineFragment recreation when returning from the photo slider. */
+    /** Survives TimelineComposeFragment recreation when returning from the photo slider. */
     var lastSelectedDayKey: String? = null
     var lastSelectedAssetId: String? = null
 
@@ -83,8 +85,8 @@ class TimelineViewModel(
     var lastSelectedMemoryId: String? = null
 
     /**
-     * Sticky mosaic asset for menu / slider return. Survives stray Leanback focus until
-     * [TimelineFragment] restore consumes it. Prefer over [lastSelectedAssetId] when set.
+     * Sticky mosaic asset for menu / slider return. Survives stray stray focus until
+     * the timeline restore consumes it. Prefer over [lastSelectedAssetId] when set.
      */
     var pendingResumeAssetId: String? = null
 
@@ -478,3 +480,19 @@ class TimelineViewModel(
 internal fun timelineViewModelKey(): String =
     "timeline-${nl.giejay.android.tv.immich.api.ApiClientConfig.fromPrefs().hashCode()}-" +
         if (nl.giejay.android.tv.immich.api.timelineWithStacked() == true) "stacked" else "plain"
+
+class TimelineViewModelFactory(
+    private val apiClient: ApiClient
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(TimelineViewModel::class.java)) {
+            return TimelineViewModel(
+                fetchBuckets = { apiClient.getTimeBuckets() },
+                fetchBucket = { apiClient.getTimeBucket(it) },
+                fetchMemories = { apiClient.getMemories() }
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}

@@ -386,7 +386,7 @@ class TimelineViewModelTest {
             prefetchDebounceMs = 0
         )
 
-        // Opening a mosaic item (TimelineFragment.onItemClicked).
+        // Opening a mosaic item (a mosaic cell was clicked).
         vm.applyLeaveOffSnapshot(TimelineLeaveOff.afterOpeningMosaic("asset-open"))
         assertEquals(
             TimelineLeaveOff.Target.Mosaic("asset-open", allowScrollAdjust = false),

@@ -4,7 +4,7 @@ import android.view.KeyEvent
 
 /**
  * Pure D-pad outcome for a mosaic cell, independent of RecyclerView focus.
- * Used by [TimelineFocusNavigator] and covered by unit tests for island Up/Down contracts.
+ * Used by the timeline screen and covered by unit tests for island Up/Down contracts.
  */
 sealed class TimelineFocusAction {
     data class Move(val assetId: String) : TimelineFocusAction()

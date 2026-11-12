@@ -36,9 +36,9 @@ import nl.giejay.mediaslider.util.LoadMoreResult
 import nl.giejay.mediaslider.viewmodel.MediaSliderViewModel
 
 /**
- * Opens a timeline photo or memory in the media slider; used by the Compose timeline. Mirrors
- * what [TimelineFragment] does for its View mosaic (both keep the leave-off snapshot in the
- * shared [TimelineViewModel] so Back lands on the cell that was last viewed).
+ * Opens a timeline photo or memory in the media slider; used by the Compose timeline. Keeps the
+ * leave-off snapshot in the shared [TimelineViewModel] so Back lands on the cell that was
+ * last viewed.
  */
 class TimelineSliderLauncher(
     private val viewModel: TimelineViewModel,

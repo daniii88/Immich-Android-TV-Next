@@ -25,7 +25,6 @@ import nl.giejay.android.tv.immich.api.model.toTimelineAssets
 import nl.giejay.android.tv.immich.api.service.ApiService
 import nl.giejay.android.tv.immich.api.util.ApiUtil.executeAPICall
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
-import nl.giejay.android.tv.immich.shared.prefs.CLASSIC_TIMELINE
 import nl.giejay.android.tv.immich.shared.prefs.AlbumsFilter
 import nl.giejay.android.tv.immich.shared.prefs.mergeAlbums
 import nl.giejay.android.tv.immich.shared.prefs.onlySharedAlbums
@@ -115,7 +114,7 @@ internal fun buildListAssetsSearchRequest(
  * The Compose timeline shows a stack as one cell (its primary asset, with the size) and opens the series; the classic
  * timeline has no way to open it, so it keeps listing every member. Omitted (the server default) when off.
  */
-internal fun timelineWithStacked(): Boolean? = if (PreferenceManager.get(CLASSIC_TIMELINE)) null else true
+internal fun timelineWithStacked(): Boolean? = true
 
 // Server default for withPartners is false/omitted, so only send true when the user opted in -
 // issue #157: partner-shared photos never showed up in the Timeline because this was never wired up.

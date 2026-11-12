@@ -61,7 +61,7 @@ import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.api.model.Memory
 import nl.giejay.android.tv.immich.api.util.ApiUtil
 import nl.giejay.android.tv.immich.timeline.TimelineLeaveOff
-import nl.giejay.android.tv.immich.timeline.MemoriesRowAdapter
+import nl.giejay.android.tv.immich.timeline.MemoryLabels
 import nl.giejay.android.tv.immich.timeline.TimelineMosaicCell
 import nl.giejay.android.tv.immich.timeline.TimelineMosaicItem
 import nl.giejay.android.tv.immich.timeline.TimelineViewModel
@@ -527,7 +527,7 @@ private fun MemoriesRow(
             }
             TimelineMemoryCard(
                 coverUrl = ApiUtil.getThumbnailUrl(memory.assets.firstOrNull()?.id, "thumbnail"),
-                label = MemoriesRowAdapter.yearsAgoLabel(context, memory),
+                label = MemoryLabels.yearsAgoLabel(context, memory),
                 focused = memory.id == focusedId,
                 modifier = Modifier
                     .focusRequester(requester)

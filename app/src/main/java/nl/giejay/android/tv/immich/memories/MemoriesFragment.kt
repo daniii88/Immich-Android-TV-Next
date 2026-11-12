@@ -13,7 +13,7 @@ import nl.giejay.android.tv.immich.card.Card
 import nl.giejay.android.tv.immich.shared.fragment.VerticalCardGridFragment
 import nl.giejay.android.tv.immich.shared.util.buildSliderConfiguration
 import nl.giejay.android.tv.immich.shared.util.toSliderItems
-import nl.giejay.android.tv.immich.timeline.MemoriesRowAdapter
+import nl.giejay.android.tv.immich.timeline.MemoryLabels
 import nl.giejay.mediaslider.viewmodel.MediaSliderViewModel
 
 /** All memories of the server (newest first), not only today's "N years ago" row of the timeline; opens one in the viewer. */
@@ -35,7 +35,7 @@ class MemoriesFragment : VerticalCardGridFragment<Memory>() {
     override fun createCard(a: Memory): Card {
         val cover = ApiUtil.getThumbnailUrl(a.assets.firstOrNull()?.id, "thumbnail")
         return Card(
-            title = MemoriesRowAdapter.yearsAgoLabel(requireContext(), a),
+            title = MemoryLabels.yearsAgoLabel(requireContext(), a),
             description = DateUtils.formatDateTime(requireContext(), a.memoryAt.time, DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_YEAR or DateUtils.FORMAT_ABBREV_MONTH),
             id = a.id,
             thumbnailUrl = cover,
