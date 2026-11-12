@@ -5,57 +5,34 @@ import nl.giejay.android.tv.immich.api.model.MapMarker
 import org.junit.Test
 import kotlin.random.Random
 
-/** A big library: tens of thousands of photos in one country, hundreds of places. Must stay quick and readable. */
+/** A big library: tens of thousands of photos in one country, hundreds of places in a few regions. Must stay quick and readable. */
 class MapScaleTest {
-    // Germany, with a few hundred "places" the way the server's geocoding names them (localities, not just cities)
     private val markers: List<MapMarker> = run {
         val random = Random(7)
+        val regions = listOf("Bayern", "Hessen", "Sachsen", "Berlin")
         val places = List(600) { Triple("Ort $it", 47.5 + random.nextDouble() * 7.0, 6.0 + random.nextDouble() * 9.0) }
         List(30_000) { i ->
-            val (name, lat, lon) = places[(random.nextDouble().let { it * it } * places.size).toInt()] // some places have many photos
-            MapMarker("id$i", lat + random.nextDouble() * 0.01, lon + random.nextDouble() * 0.01, name, "Land", "Germany")
+            val index = (random.nextDouble().let { it * it } * places.size).toInt() // some places have many photos
+            val (name, lat, lon) = places[index]
+            MapMarker("id$i", lat + random.nextDouble() * 0.01, lon + random.nextDouble() * 0.01, name, regions[index % regions.size], "Germany")
         }
     }
 
     @Test
-    fun `thousands of photos in one country group into places and stay quick`() {
+    fun `thousands of photos in one country become one country card, its regions, and lit dots, quickly`() {
         val start = System.nanoTime()
         val cities = groupCities(markers)
-        val world = clustersFor(cities, MapViewport.WORLD)
+        val countries = countriesOf(markers, cities)
+        val contents = countries.single().contents()
+        val footprint = MapFootprint.of(markers)
+        val cells = footprintCells(footprint, MapViewport.WORLD, 400, 160, highlight = "Germany")
         val tookMs = (System.nanoTime() - start) / 1_000_000
-        assertThat(cities.size).isAtMost(600)
-        assertThat(cities.sumOf { it.count }).isEqualTo(30_000)
         assertThat(tookMs).isLessThan(3_000)
-        // on the world map the whole country is a single bubble, not hundreds on top of each other
-        assertThat(world.size).isAtMost(2)
-        assertThat(world.sumOf { it.count }).isEqualTo(30_000)
-    }
-
-    @Test
-    fun `zooming into the country falls apart into regions, then into cities, step by step`() {
-        val cities = groupCities(markers)
-        var view = MapViewport.WORLD
-        var clusters = clustersFor(cities, view)
-        var counts = mutableListOf(clusters.size)
-        repeat(6) {
-            val biggest = clusters.maxByOrNull { it.count }!!
-            if (!canZoomInto(biggest, view)) return@repeat
-            view = viewportFor(biggest.cities)
-            clusters = clustersFor(cities, view)
-            counts += clusters.size
-        }
-        // every step shows more bubbles than the one before (until the places are apart), and each stays readable
-        assertThat(counts.zipWithNext().all { (a, b) -> b >= a }).isTrue()
-        assertThat(counts.last()).isGreaterThan(counts.first())
-        assertThat(clusters.size).isAtMost(120)
-    }
-
-    @Test
-    fun `the cards of a huge bubble are the biggest places`() {
-        val cities = groupCities(markers)
-        val bubble = clustersFor(cities, MapViewport.WORLD).first()
-        val top = bubble.cities.take(40)
-        assertThat(top.map { it.count }).isInOrder(Comparator.reverseOrder<Int>())
-        assertThat(orderByProximity(top)).hasSize(40)
+        assertThat(countries.single().count).isEqualTo(30_000)
+        // 600 places would be too many cards for a remote: the country lists its four regions instead
+        assertThat(contents.regions).hasSize(4)
+        assertThat(contents.regions.sumOf { it.count }).isEqualTo(30_000)
+        assertThat(cells.all.sum()).isEqualTo(30_000)
+        assertThat(cells.bright.sum()).isEqualTo(30_000)
     }
 }

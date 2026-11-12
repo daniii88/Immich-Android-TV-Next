@@ -9,7 +9,7 @@ import kotlin.random.Random
 
 /**
  * A heavy library: the server sends every marker at once (about 120 bytes of JSON each). Parsing, grouping into places
- * and the clustering of a view have to stay in the range of a second on a desktop JVM; the numbers are printed so a
+ * and counting the lit dots of a view have to stay in the range of a second on a desktop JVM; the numbers are printed so a
  * slower TV box can be judged against them.
  */
 class MapHugeLibraryTest {
@@ -39,16 +39,20 @@ class MapHugeLibraryTest {
         val cities = groupCities(markers)
         val groupMs = (System.nanoTime() - t) / 1_000_000
         t = System.nanoTime()
-        val world = clustersFor(cities, MapViewport.WORLD)
+        val countries = countriesOf(markers, cities)
+        val footprint = MapFootprint.of(markers)
+        val prepareMs = (System.nanoTime() - t) / 1_000_000
+        t = System.nanoTime()
+        val world = footprintCells(footprint, MapViewport.WORLD, 400, 160, countries.first().name)
         val worldMs = (System.nanoTime() - t) / 1_000_000
         t = System.nanoTime()
-        val zoomView = viewportFor(world.maxByOrNull { it.count }!!.cities)
-        val zoomed = clustersFor(cities, zoomView)
+        val zoomed = footprintCells(footprint, viewportFor(countries.first().cities), 400, 160, countries.first().name)
         val zoomMs = (System.nanoTime() - t) / 1_000_000
-        println("MAPSCALE markers=$count json=${text.length / 1_000_000}MB places=${cities.size} parse=${parseMs}ms group=${groupMs}ms worldClusters=${world.size} (${worldMs}ms) zoomClusters=${zoomed.size} (${zoomMs}ms)")
+        println("MAPSCALE markers=$count json=${text.length / 1_000_000}MB places=${cities.size} countries=${countries.size} parse=${parseMs}ms group=${groupMs}ms countries+footprint=${prepareMs}ms worldDots=${worldMs}ms countryDots=${zoomMs}ms")
         assertThat(markers).hasSize(count)
         assertThat(cities.sumOf { it.count }).isEqualTo(count) // every photo has a city here
-        assertThat(world.sumOf { it.count }).isEqualTo(count)
+        assertThat(world.all.sum()).isEqualTo(count)
+        assertThat(zoomed.bright.sum()).isAtMost(count)
     }
 
     @Test fun `100 thousand photos in 8 thousand places`() = measure(100_000, 8_000)

@@ -362,10 +362,10 @@
     <string name="live_photo_failed">Could not play the live photo</string>
     <string name="map">Map</string>
     <string name="map_empty">No photos with a location yet</string>
-    <string name="map_zoom_out_hint">Back: zoom out</string>
-    <plurals name="map_more_places">
-        <item quantity="one">%d more place – zoom in to see it</item>
-        <item quantity="other">%d more places – zoom in to see them</item>
+    <string name="map_all_photos">All photos</string>
+    <plurals name="map_countries">
+        <item quantity="one">%d country</item>
+        <item quantity="other">%d countries</item>
     </plurals>
     <plurals name="map_group_places">
         <item quantity="one">%d place</item>

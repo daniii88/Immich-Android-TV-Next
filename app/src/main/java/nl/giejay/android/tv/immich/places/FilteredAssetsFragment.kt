@@ -8,13 +8,15 @@ import nl.giejay.android.tv.immich.assets.GenericAssetFragment
 import nl.giejay.android.tv.immich.shared.prefs.PhotosOrder
 import nl.giejay.android.tv.immich.tags.TagsFragment
 
-/** The photos of one place (city) or one tag; opened from [PlacesFragment] / [TagsFragment]. */
+/** The photos of one place (city), region (state) or country, or of one tag; opened from [PlacesFragment] / [TagsFragment]. */
 class FilteredAssetsFragment : GenericAssetFragment() {
     private lateinit var filterType: String
     private lateinit var filterValue: String
     private lateinit var filterTitle: String
     /** Narrows a city to its country, where two countries have a city of the same name (Paris); null: any. */
     private var filterCountry: String? = null
+    /** Narrows a city to its region, where one country has two cities of the same name (Portland); null: any. */
+    private var filterState: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val args = FilteredAssetsFragmentArgs.fromBundle(requireArguments())
@@ -22,6 +24,7 @@ class FilteredAssetsFragment : GenericAssetFragment() {
         filterValue = args.filterValue
         filterTitle = args.filterTitle
         filterCountry = args.filterCountry
+        filterState = args.filterState
         super.onCreate(savedInstanceState)
     }
 
@@ -32,7 +35,16 @@ class FilteredAssetsFragment : GenericAssetFragment() {
             contentType = currentFilter,
             order = if (currentSort == PhotosOrder.NEWEST_OLDEST) "desc" else "asc",
             city = if (filterType == PlacesFragment.FILTER_CITY) filterValue else null,
-            country = if (filterType == PlacesFragment.FILTER_CITY) filterCountry else null,
+            state = when (filterType) {
+                PlacesFragment.FILTER_STATE -> filterValue
+                PlacesFragment.FILTER_CITY -> filterState
+                else -> null
+            },
+            country = when (filterType) {
+                PlacesFragment.FILTER_COUNTRY -> filterValue
+                PlacesFragment.FILTER_CITY, PlacesFragment.FILTER_STATE -> filterCountry
+                else -> null
+            },
             tagIds = if (filterType == TagsFragment.FILTER_TAG) listOf(filterValue) else emptyList(),
         ).map { it.assets }
 

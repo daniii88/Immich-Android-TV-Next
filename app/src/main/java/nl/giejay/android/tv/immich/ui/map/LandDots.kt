@@ -5,8 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
+import nl.giejay.android.tv.immich.map.MapFootprint
 import nl.giejay.android.tv.immich.map.MapViewport
+import nl.giejay.android.tv.immich.map.footprintCells
 import java.nio.ByteBuffer
+import kotlin.math.ln
 
 /**
  * Turns the coastline and border vectors into the dot matrix of the map: for the view on screen, the land is rasterised
@@ -16,6 +19,9 @@ import java.nio.ByteBuffer
  *
  * Rasterising a view costs about a millisecond for a screen of dots; the result is kept until the view changes.
  */
+/** The photos drawn over the land: [highlight] is a country name (its photos in [focusColor], the others in [otherColor]) or null (all in [focusColor]). */
+internal class FootprintStyle(val footprint: MapFootprint, val highlight: String?, val focusColor: Int, val otherColor: Int)
+
 internal class LandDots(vectors: MapVectors) {
     private val land: Path = vectors.land.asAndroidPath()
     private val borders: Path = vectors.borders.asAndroidPath()
@@ -69,7 +75,10 @@ internal class LandDots(vectors: MapVectors) {
      * instead of tens of thousands of points. Safe to call from a background thread (one view at a time).
      */
     @Synchronized
-    fun render(view: MapViewport, width: Int, height: Int, step: Int, dot: Int, landColor: Int, borderColor: Int): Bitmap {
+    fun render(
+        view: MapViewport, width: Int, height: Int, step: Int, dot: Int, landColor: Int, borderColor: Int,
+        footprint: FootprintStyle? = null,
+    ): Bitmap {
         update(view, width / step, height / step, step, dot)
         val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val target = Canvas(out)
@@ -78,8 +87,44 @@ internal class LandDots(vectors: MapVectors) {
         target.drawPoints(landPoints, paint)
         paint.color = borderColor
         target.drawPoints(borderPoints, paint)
+        if (footprint != null) drawFootprint(target, paint, footprint, view, width / step, height / step, step, dot)
         return out
     }
+
+    /**
+     * Lights the dots where photos were taken, on the same grid as the land: a soft glow around each so a single photo
+     * in a far-away place still shows on the world map, and a solid dot on top, stronger the more photos. The
+     * highlighted country is drawn in [FootprintStyle.focusColor], the rest of the footprint in [FootprintStyle.otherColor].
+     */
+    private fun drawFootprint(target: Canvas, paint: Paint, style: FootprintStyle, view: MapViewport, cols: Int, rows: Int, step: Int, dot: Int) {
+        if (cols < 1 || rows < 1) return
+        val cells = footprintCells(style.footprint, view, cols, rows, style.highlight)
+        val max = cells.max
+        if (max == 0) return
+        val logMax = ln(max + 1.0)
+        val inset = (step - dot) / 2 + dot / 2f
+        val glow = Paint().also { it.isAntiAlias = true; it.style = Paint.Style.FILL }
+        val core = Paint().also { it.isAntiAlias = true; it.style = Paint.Style.FILL }
+        // glows first, so no glow covers a neighbouring dot
+        for (cell in cells.all.indices) {
+            val all = cells.all[cell]
+            if (all == 0) continue
+            val bright = cells.bright[cell] > 0
+            val share = ln(all + 1.0) / logMax
+            glow.color = withAlpha(if (bright) style.focusColor else style.otherColor, if (bright) 0.32 else 0.20)
+            target.drawCircle((cell % cols) * step + inset, (cell / cols) * step + inset, (step * (2.2 + 2.6 * share)).toFloat(), glow)
+        }
+        for (cell in cells.all.indices) {
+            val all = cells.all[cell]
+            if (all == 0) continue
+            val bright = cells.bright[cell] > 0
+            val share = ln(all + 1.0) / logMax
+            core.color = withAlpha(if (bright) style.focusColor else style.otherColor, 0.9 + 0.1 * share)
+            target.drawCircle((cell % cols) * step + inset, (cell / cols) * step + inset, (step * (0.75 + 0.9 * share)).toFloat(), core)
+        }
+    }
+
+    private fun withAlpha(color: Int, alpha: Double): Int = (color and 0xFFFFFF) or ((alpha * 255).toInt().coerceIn(0, 255) shl 24)
 
     private fun raster(
         bmp: Bitmap, canvas: Canvas, path: Path, paint: Paint,

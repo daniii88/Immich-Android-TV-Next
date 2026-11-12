@@ -114,4 +114,15 @@ class SearchRequestVisibilityTest {
         )
         assertEquals("archive", archive.visibility)
     }
+
+    @Test
+    fun `state filter is passed on together with the country`() {
+        val request = buildListAssetsSearchRequest(
+            page = 1, pageCount = 10, albumIds = emptyList(), order = "desc", type = null, personIds = emptyList(),
+            endDate = null, fromDate = null, state = "Bayern", country = "Germany",
+        )
+        assertEquals("Bayern", request.state)
+        assertEquals("Germany", request.country)
+        assertNull(buildListAssetsSearchRequest(1, 10, emptyList(), "desc", null, emptyList(), null, null).state)
+    }
 }

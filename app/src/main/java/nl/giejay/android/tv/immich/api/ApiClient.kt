@@ -86,7 +86,8 @@ internal fun buildListAssetsSearchRequest(
     tagIds: List<String> = emptyList(),
     isFavorite: Boolean? = null,
     visibility: String? = null,
-    country: String? = null
+    country: String? = null,
+    state: String? = null
 ): SearchRequest = SearchRequest(
     page = page,
     size = pageCount,
@@ -98,6 +99,7 @@ internal fun buildListAssetsSearchRequest(
     takenAfter = fromDate,
     city = city,
     country = country,
+    state = state,
     tagIds = tagIds.ifEmpty { null },
     isFavorite = isFavorite,
     // "timeline" reproduces pre-v3 default for normal browsing; album-scoped search
@@ -372,11 +374,11 @@ class ApiClient(private val config: ApiClientConfig) {
     }
 
     /** The photos of one place (city) or one tag, newest first (a separate function so [listAssets] keeps its signature). */
-    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null, country: String? = null): Either<String, AssetResponse> {
+    suspend fun listAssetsByFilter(page: Int, pageCount: Int, contentType: ContentType, city: String? = null, tagIds: List<String> = emptyList(), order: String = "desc", favorite: Boolean? = null, visibility: String? = null, country: String? = null, state: String? = null): Either<String, AssetResponse> {
         val request = buildListAssetsSearchRequest(
             page = page, pageCount = pageCount, albumIds = emptyList(), order = order,
             type = if (contentType == ContentType.ALL) null else contentType.toString(),
-            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility, country = country,
+            personIds = emptyList(), endDate = null, fromDate = null, city = city, tagIds = tagIds, isFavorite = favorite, visibility = visibility, country = country, state = state,
         )
         return search(request).map { it.toAssetResponse() }
     }
