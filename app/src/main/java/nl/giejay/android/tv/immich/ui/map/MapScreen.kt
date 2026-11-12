@@ -300,16 +300,16 @@ private fun pinsOf(level: MapLevel, data: MapData): List<MapPin> = when (level) 
 
 /**
  * The part of the world the map shows on a level: the whole world, or the places of the country / region framed (a
- * country without named places around its photo).
+ * country without named places around its photo), with [topRoom] free above them for the pins.
  */
-private fun viewportOf(level: MapLevel): MapViewport = when (level) {
+private fun viewportOf(level: MapLevel, topRoom: Double): MapViewport = when (level) {
     MapLevel.World -> MapViewport.WORLD
     is MapLevel.Country -> if (level.country.cities.isEmpty()) {
         MapViewport.around(level.country.lat, level.country.lon, MapViewport.MIN_WIDTH_DEGREES)
     } else {
-        viewportFor(level.country.cities)
+        viewportFor(level.country.cities, topRoom)
     }
-    is MapLevel.Region -> viewportFor(level.region.cities)
+    is MapLevel.Region -> viewportFor(level.region.cities, topRoom)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -356,11 +356,14 @@ private fun MapContent(
         // the biggest rectangle of the map's proportions that fits the room above the cards
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             val width = minOf(maxWidth, maxHeight * WorldDots.ASPECT)
+            // room for the focused photo above the northernmost place (with its tip and a little air)
+            val topRoom = ((PIN_SIZE * PIN_FOCUS_SCALE + PIN_TIP + 12.dp) / (width / WorldDots.ASPECT)).toDouble()
+            val viewport = remember(level, topRoom) { viewportOf(level, topRoom) }
             WorldMap(
                 footprint = data.footprint,
                 landDots = landDots,
                 vectors = vectors,
-                viewport = viewportOf(level),
+                viewport = viewport,
                 highlight = entry?.highlight,
                 pins = pins,
                 focusedPin = entry?.pinKey,
