@@ -17,7 +17,8 @@ data class PinSize(val photoPx: Float, val focusedPhotoPx: Float, val tipPx: Flo
  * The pins to show in [view] on a map of [widthPx] x [heightPx]: the focused one first (always, when in view), then
  * the others with the most photos, each only if its photo does not overlap one already placed (with [PinSize.gapPx]
  * room), so photos never lie on top of each other; at most [max]. A photo stands above its place, or hangs below it
- * when there is no room above ([hangsBelow]).
+ * when there is no room above ([hangsBelow]). The name of the focused pin ([focusedLabelWidthPx] wide, often wider than
+ * its photo) is kept clear too.
  */
 fun choosePins(
     candidates: List<MapPin>,
@@ -27,6 +28,7 @@ fun choosePins(
     heightPx: Float,
     size: PinSize,
     max: Int,
+    focusedLabelWidthPx: Float = 0f,
 ): List<MapPin> {
     val ordered = candidates.filter { it.key == focusedKey } + candidates.filter { it.key != focusedKey }.sortedByDescending { it.count }
     val chosen = mutableListOf<MapPin>()
@@ -34,15 +36,20 @@ fun choosePins(
     for (pin in ordered) {
         if (chosen.size >= max) break
         if (!view.contains(pin.lat, pin.lon)) continue
-        val photo = if (pin.key == focusedKey) size.focusedPhotoPx else size.photoPx
+        val focused = pin.key == focusedKey
+        val photo = if (focused) size.focusedPhotoPx else size.photoPx
         val x = view.x(pin.lon) * widthPx
         val y = view.y(pin.lat) * heightPx
         val top = if (hangsBelow(y, photo, size.tipPx)) y else y - photo - size.tipPx
-        val label = if (pin.key == focusedKey) size.labelPx else 0f
-        val box = floatArrayOf(x - photo / 2 - size.gapPx, top - size.gapPx, x + photo / 2 + size.gapPx, top + photo + size.tipPx + label + size.gapPx)
-        if (placed.any { it[0] < box[2] && box[0] < it[2] && it[1] < box[3] && box[1] < it[3] }) continue
+        val boxes = mutableListOf(floatArrayOf(x - photo / 2 - size.gapPx, top - size.gapPx, x + photo / 2 + size.gapPx, top + photo + size.tipPx + size.gapPx))
+        if (focused && size.labelPx > 0f) {
+            val half = maxOf(photo, focusedLabelWidthPx) / 2
+            val labelTop = top + photo + size.tipPx
+            boxes += floatArrayOf(x - half - size.gapPx, labelTop - size.gapPx, x + half + size.gapPx, labelTop + size.labelPx + size.gapPx)
+        }
+        if (boxes.any { box -> placed.any { it[0] < box[2] && box[0] < it[2] && it[1] < box[3] && box[1] < it[3] } }) continue
         chosen += pin
-        placed += box
+        placed += boxes
     }
     return chosen
 }

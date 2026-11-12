@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.zIndex
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -505,8 +506,15 @@ private fun WorldMap(
         }
         // photos at the places with the most photos, never on top of each other; the focused one larger and named
         val pinSize = with(density) { PinSize(PIN_SIZE.toPx(), (PIN_SIZE * PIN_FOCUS_SCALE).toPx(), PIN_TIP.toPx(), 6.dp.toPx(), labelPx = 30.dp.toPx()) }
-        val shownPins = remember(pins, focusedPin, viewport, widthPx, heightPx) {
-            choosePins(pins, focusedPin, viewport, widthPx.toFloat(), heightPx.toFloat(), pinSize, MAX_PINS)
+        // the focused name is often wider than its photo; keep the other photos clear of it
+        val labelStyle = MaterialTheme.typography.labelLarge
+        val textMeasurer = rememberTextMeasurer()
+        val focusedName = pins.firstOrNull { it.key == focusedPin }?.name
+        val labelWidth = remember(focusedName, labelStyle) {
+            focusedName?.let { textMeasurer.measure(it, labelStyle, maxLines = 1, softWrap = false).size.width + with(density) { (PIN_LABEL_PADDING * 2).toPx() } } ?: 0f
+        }
+        val shownPins = remember(pins, focusedPin, viewport, widthPx, heightPx, labelWidth) {
+            choosePins(pins, focusedPin, viewport, widthPx.toFloat(), heightPx.toFloat(), pinSize, MAX_PINS, labelWidth)
         }
         shownPins.asReversed().forEach { pin ->
             val focused = pin.key == focusedPin
@@ -558,7 +566,7 @@ private fun PhotoPin(pin: MapPin, focused: Boolean, below: Boolean, viewport: ()
                     modifier = Modifier
                         .padding(top = 4.dp)
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                        .padding(horizontal = PIN_LABEL_PADDING, vertical = 2.dp),
                 )
             }
         },
@@ -619,6 +627,7 @@ private val PIN_SIZE = 52.dp
 private const val PIN_FOCUS_SCALE = 1.35f
 private val PIN_TIP = 9.dp
 private val PIN_CORNER = 12.dp
+private val PIN_LABEL_PADDING = 8.dp
 
 /** The dark edge of a pin, so its white frame and tip stand out from the bright dots and glows under them. */
 private val PIN_EDGE = Color(0xB3101418)
