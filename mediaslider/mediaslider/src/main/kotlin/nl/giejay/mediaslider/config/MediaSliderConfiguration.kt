@@ -38,6 +38,8 @@ class MediaSliderConfiguration(
     val blurredBackdrop: Boolean = false,
     /** Duration of every transition except [SliderTransition.SLIDE], which uses [animationSpeedMillis]. */
     val transitionDurationMillis: Int = 1200,
+    /** The slideshow runs from newer to older (towards the previous asset). */
+    var reverseSlideshow: Boolean = false,
     var controllerPlugins: List<SliderControllerPlugin> = emptyList(),
     var viewPlugins: List<SliderViewPlugin<*>> = emptyList(),
     var keyEventPlugins: List<SliderKeyEventPlugin> = emptyList()

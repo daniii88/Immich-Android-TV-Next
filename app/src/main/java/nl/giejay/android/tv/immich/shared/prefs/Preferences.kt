@@ -357,6 +357,10 @@ data object SLIDER_DPAD_SEEK_IN_VIDEO : BooleanPref(false,
     ImmichApplication.appContext!!.getString(R.string.dpad_seek_in_video),
     ImmichApplication.appContext!!.getString(R.string.dpad_seek_in_video_desc))
 
+data object SLIDER_REVERSE_SLIDESHOW : BooleanPref(false,
+    ImmichApplication.appContext!!.getString(R.string.reverse_slideshow),
+    ImmichApplication.appContext!!.getString(R.string.reverse_slideshow_desc))
+
 data object SLIDER_LOAD_EDITED_PHOTO : BooleanPref(false,
     ImmichApplication.appContext!!.getString(R.string.load_edited_photo),
     ImmichApplication.appContext!!.getString(R.string.load_edited_photo_desc))
@@ -641,6 +645,7 @@ data object ViewSlideshowDisplayPrefScreen : PrefScreen(ImmichApplication.appCon
             SLIDER_ONLY_USE_THUMBNAILS,
             SLIDER_FORCE_ORIGINAL_VIDEO,
             SLIDER_DPAD_SEEK_IN_VIDEO,
+            SLIDER_REVERSE_SLIDESHOW,
             SLIDER_LOAD_EDITED_PHOTO,
             SLIDER_MERGE_PORTRAIT_PHOTOS,
             SLIDER_BLURRED_BACKDROP,

@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
+import nl.giejay.android.tv.immich.shared.prefs.SLIDER_REVERSE_SLIDESHOW
 import nl.giejay.mediaslider.plugin.TimelineStoryProgressPlugin
 import nl.giejay.mediaslider.view.MediaSliderFragment
 import nl.giejay.mediaslider.view.MediaSliderView
@@ -48,6 +49,9 @@ class ImmichMediaSlider : MediaSliderFragment() {
             DefaultHttpDataSource.Factory()
                 .setDefaultRequestProperties(ApiAuthHeaders.forPlayerFromPrefs())
         )
+
+        // memories always play forward; the pref only applies to the slideshow button
+        config.reverseSlideshow = !bundle.timelineView && PreferenceManager.get(SLIDER_REVERSE_SLIDESHOW)
 
         if (bundle.timelineView) {
             val timelinePlugin = TimelineStoryProgressPlugin()

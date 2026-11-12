@@ -16,7 +16,7 @@ class ControllerLayoutTest {
     fun `photo row has no video controls and no seek bar`() {
         val chain = ControllerLayout.focusChain(isVideo = false, plugins = emptyList())
         assertThat(chain).containsExactly(
-            ControllerIds.PREVIOUS, ControllerIds.SLIDESHOW_REVERSE, ControllerIds.SLIDESHOW, ControllerIds.NEXT,
+            ControllerIds.PREVIOUS, ControllerIds.SLIDESHOW, ControllerIds.NEXT,
         ).inOrder()
     }
 
@@ -24,7 +24,7 @@ class ControllerLayoutTest {
     fun `video row adds mute, play pause and the seek bar`() {
         val chain = ControllerLayout.focusChain(isVideo = true, plugins = emptyList())
         assertThat(chain).containsExactly(
-            ControllerIds.MUTE, ControllerIds.PREVIOUS, ControllerIds.PLAY_PAUSE, ControllerIds.SLIDESHOW_REVERSE,
+            ControllerIds.MUTE, ControllerIds.PREVIOUS, ControllerIds.PLAY_PAUSE,
             ControllerIds.SLIDESHOW, ControllerIds.NEXT, ControllerIds.SEEK,
         ).inOrder()
     }
@@ -56,29 +56,28 @@ class ControllerLayoutTest {
 
     @Test
     fun `initial focus is play pause for video and the slideshow button for photos`() {
-        assertThat(ControllerLayout.initialFocus(true, false)).isEqualTo(ControllerIds.PLAY_PAUSE)
-        assertThat(ControllerLayout.initialFocus(false, false)).isEqualTo(ControllerIds.SLIDESHOW)
-        assertThat(ControllerLayout.initialFocus(false, true)).isEqualTo(ControllerIds.SLIDESHOW_REVERSE)
+        assertThat(ControllerLayout.initialFocus(true)).isEqualTo(ControllerIds.PLAY_PAUSE)
+        assertThat(ControllerLayout.initialFocus(false)).isEqualTo(ControllerIds.SLIDESHOW)
     }
 
     @Test
     fun `focus is kept on the same control across pages`() {
         val chain = ControllerLayout.focusChain(false, emptyList())
-        assertThat(ControllerLayout.restoreFocus(ControllerIds.NEXT, 3, chain, false, false)).isEqualTo(ControllerIds.NEXT)
+        assertThat(ControllerLayout.restoreFocus(ControllerIds.NEXT, 3, chain, false)).isEqualTo(ControllerIds.NEXT)
     }
 
     @Test
     fun `video to photo maps play pause to slideshow and mute to previous`() {
         val photo = ControllerLayout.focusChain(false, emptyList())
-        assertThat(ControllerLayout.restoreFocus(ControllerIds.PLAY_PAUSE, 2, photo, false, false)).isEqualTo(ControllerIds.SLIDESHOW)
-        assertThat(ControllerLayout.restoreFocus(ControllerIds.MUTE, 0, photo, false, false)).isEqualTo(ControllerIds.PREVIOUS)
-        assertThat(ControllerLayout.restoreFocus(ControllerIds.SEEK, 6, photo, false, false)).isEqualTo(ControllerIds.SLIDESHOW)
+        assertThat(ControllerLayout.restoreFocus(ControllerIds.PLAY_PAUSE, 2, photo, false)).isEqualTo(ControllerIds.SLIDESHOW)
+        assertThat(ControllerLayout.restoreFocus(ControllerIds.MUTE, 0, photo, false)).isEqualTo(ControllerIds.PREVIOUS)
+        assertThat(ControllerLayout.restoreFocus(ControllerIds.SEEK, 6, photo, false)).isEqualTo(ControllerIds.SLIDESHOW)
     }
 
     @Test
     fun `photo to video keeps the slideshow button and falls back to the same slot for a missing plugin button`() {
         val video = ControllerLayout.focusChain(true, emptyList())
-        assertThat(ControllerLayout.restoreFocus(ControllerIds.SLIDESHOW, 2, video, true, false)).isEqualTo(ControllerIds.SLIDESHOW)
-        assertThat(ControllerLayout.restoreFocus("plugin_gone", 1, video, true, false)).isEqualTo(video[1])
+        assertThat(ControllerLayout.restoreFocus(ControllerIds.SLIDESHOW, 2, video, true)).isEqualTo(ControllerIds.SLIDESHOW)
+        assertThat(ControllerLayout.restoreFocus("plugin_gone", 1, video, true)).isEqualTo(video[1])
     }
 }

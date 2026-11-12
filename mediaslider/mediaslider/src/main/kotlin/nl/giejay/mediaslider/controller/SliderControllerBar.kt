@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -59,12 +61,15 @@ import java.util.concurrent.TimeUnit
 private val BarScrimTop = Color(0xF20F1115)
 private val BarScrimMid = Color(0xCC0F1115)
 private val TileColor = Color(0x26FFFFFF)
+private val TileActive = Color(0x40ADC6FF)
 private val TileFocused = Color(0xFFE4E6EC)
 private val IconOnTile = Color(0xFFE4E6EC)
 private val IconOnFocused = Color(0xFF0F1115)
 private val Accent = Color(0xFFADC6FF)
 private val TrackColor = Color(0x40FFFFFF)
 private val TimeColor = Color(0xCCE4E6EC)
+private val GroupGap = 20.dp
+private val ControllerEntry.isPlugin get() = this is ControllerEntry.Plugin
 private const val SeekStepMs = 1_000L
 private const val FocusScale = 1.1f
 
@@ -81,6 +86,8 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
     val entries = ControllerLayout.entries(isVideo, state.pluginButtons)
     val chain = ControllerLayout.focusChain(isVideo, state.pluginButtons)
     val requesters = remember { mutableMapOf<String, FocusRequester>() }
+    var focusedLabelId by remember { mutableStateOf<String?>(null) }
+    val rendered = entries.map { it.render(state) }
     fun requester(id: String) = requesters.getOrPut(id) { FocusRequester() }
 
     val request = state.focusRequest
@@ -101,11 +108,13 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             entries.forEachIndexed { index, entry ->
                 val id = entry.id
-                val (icon, description, mirrored, onClick) = entry.render(state)
+                // gap between the built-in navigation buttons and the action buttons (info, favorite, ...)
+                if (index > 0 && entry.isPlugin != entries[index - 1].isPlugin) Spacer(Modifier.width(GroupGap))
+                val (icon, description, active, onClick) = rendered[index]
                 ControllerButton(
                     icon = icon,
                     description = description,
-                    mirrored = mirrored,
+                    active = active,
                     onClick = onClick,
                     modifier = Modifier
                         .focusRequester(requester(id))
@@ -120,11 +129,18 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
                             if (it.isFocused) {
                                 state.focusedId = id
                                 state.focusedIndex = chain.indexOf(id)
+                                focusedLabelId = id
                             }
                         },
                 )
             }
         }
+        // One fixed-height line under the row names the focused button, so the layout never shifts.
+        BasicText(
+            entries.indexOfFirst { it.id == focusedLabelId }.let { if (it >= 0) rendered[it].description else "" },
+            style = TextStyle(color = TimeColor, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            modifier = Modifier.height(24.dp),
+        )
         if (isVideo) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
@@ -158,7 +174,7 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
 private data class Rendered(
     val icon: Int,
     val description: String,
-    val mirrored: Boolean = false,
+    val active: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -168,17 +184,21 @@ private fun ControllerEntry.render(state: SliderControllerUiState): Rendered = w
     is ControllerEntry.BuiltIn -> when (id) {
         ControllerIds.MUTE -> Rendered(
             if (state.soundOn) R.drawable.ic_ctrl_volume_on else R.drawable.ic_ctrl_volume_off,
-            stringResource(R.string.media_mute),
+            stringResource(if (state.soundOn) R.string.media_mute else R.string.media_unmute),
             onClick = state.onMute,
         )
         ControllerIds.PREVIOUS -> Rendered(R.drawable.ic_ctrl_previous, stringResource(R.string.image_controller_previous)) { state.onPrevious() }
         ControllerIds.PLAY_PAUSE -> Rendered(
             if (state.isPlaying) R.drawable.ic_ctrl_pause else R.drawable.ic_ctrl_play,
-            stringResource(R.string.media_play),
+            stringResource(if (state.isPlaying) R.string.media_pause else R.string.media_play),
             onClick = state.onPlayPause,
         )
-        ControllerIds.SLIDESHOW_REVERSE -> Rendered(R.drawable.ic_ctrl_slideshow, stringResource(R.string.slideshow), mirrored = true, onClick = state.onSlideshowReverse)
-        ControllerIds.SLIDESHOW -> Rendered(R.drawable.ic_ctrl_slideshow, stringResource(R.string.slideshow), onClick = state.onSlideshow)
+        ControllerIds.SLIDESHOW -> Rendered(
+            if (state.slideshowPlaying) R.drawable.ic_ctrl_slideshow_stop else R.drawable.ic_ctrl_slideshow,
+            stringResource(if (state.slideshowPlaying) R.string.slideshow_stop else R.string.slideshow_start),
+            active = state.slideshowPlaying,
+            onClick = state.onSlideshow,
+        )
         else -> Rendered(R.drawable.ic_ctrl_next, stringResource(R.string.image_controller_next)) { state.onNext() }
     }
 }
@@ -187,7 +207,7 @@ private fun ControllerEntry.render(state: SliderControllerUiState): Rendered = w
 private fun ControllerButton(
     icon: Int,
     description: String,
-    mirrored: Boolean,
+    active: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -204,7 +224,7 @@ private fun ControllerButton(
                 scaleY = scale
             }
             .clip(shape)
-            .background(if (focused) TileFocused else TileColor, shape)
+            .background(if (focused) TileFocused else if (active) TileActive else TileColor, shape)
             .onFocusChanged { focused = it.isFocused }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
             .semantics { contentDescription = description },
@@ -213,10 +233,8 @@ private fun ControllerButton(
         Image(
             painter = painterResource(icon),
             contentDescription = null,
-            colorFilter = ColorFilter.tint(if (focused) IconOnFocused else IconOnTile),
-            modifier = Modifier
-                .size(28.dp)
-                .graphicsLayer { if (mirrored) rotationY = 180f },
+            colorFilter = ColorFilter.tint(if (focused) IconOnFocused else if (active) Accent else IconOnTile),
+            modifier = Modifier.size(28.dp),
         )
     }
 }

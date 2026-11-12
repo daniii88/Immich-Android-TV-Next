@@ -121,8 +121,9 @@ class MediaSliderController(
     // Slideshow
     // -------------------------------------------------------------------------
 
-    fun toggleSlideshow(showPlayIndicator: Boolean, reverseSlideShowDirection: Boolean = false) {
+    fun toggleSlideshow(showPlayIndicator: Boolean, reverseSlideShowDirection: Boolean = config.reverseSlideshow) {
         slideShowPlaying = !slideShowPlaying
+        uiState.slideshowPlaying = slideShowPlaying
         this.reverseSlideShowDirection = reverseSlideShowDirection
         val itemType = currentItemTypeOrNull()
         if (slideShowPlaying) {
@@ -220,7 +221,7 @@ class MediaSliderController(
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(true, controllerRootView, this, config) }
 
         val isVideo = currentItemTypeOrNull() == SliderItemType.VIDEO
-        uiState.focusRequest = ControllerFocusRequest(ControllerLayout.initialFocus(isVideo, reverseSlideShowDirection))
+        uiState.focusRequest = ControllerFocusRequest(ControllerLayout.initialFocus(isVideo))
 
         if (isVideo) {
             startProgressUpdates()
@@ -255,8 +256,8 @@ class MediaSliderController(
         uiState.isVideo = isVideo
         uiState.onPrevious = { goToPreviousAsset() }
         uiState.onNext = { goToNextAsset() }
-        uiState.onSlideshow = { toggleSlideshow(true, false) }
-        uiState.onSlideshowReverse = { toggleSlideshow(true, true) }
+        uiState.onSlideshow = { toggleSlideshow(true) }
+        uiState.slideshowPlaying = slideShowPlaying
         uiState.isPlaying = currentPlayer?.isPlaying == true
         uiState.positionMs = 0L
         uiState.durationMs = 0L
@@ -313,7 +314,7 @@ class MediaSliderController(
             }
             val chain = ControllerLayout.focusChain(isVideo, uiState.pluginButtons)
             uiState.focusRequest = ControllerFocusRequest(
-                ControllerLayout.restoreFocus(previousFocusId, previousFocusIndex, chain, isVideo, reverseSlideShowDirection)
+                ControllerLayout.restoreFocus(previousFocusId, previousFocusIndex, chain, isVideo)
             )
             if (isVideo) {
                 startProgressUpdates()
