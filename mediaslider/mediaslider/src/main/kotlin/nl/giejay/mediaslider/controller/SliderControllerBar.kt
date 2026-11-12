@@ -1,6 +1,11 @@
 package nl.giejay.mediaslider.controller
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -80,8 +85,6 @@ private const val FocusScale = 1.1f
  */
 @Composable
 fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Modifier) {
-    if (!state.visible) return
-
     val isVideo = state.isVideo
     val entries = ControllerLayout.entries(isVideo, state.pluginButtons)
     val chain = ControllerLayout.focusChain(isVideo, state.pluginButtons)
@@ -98,8 +101,15 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
         runCatching { requester(target).requestFocus() }
     }
 
+    // fades (with a short slide) in and out instead of popping, also when Back closes the bar
+    AnimatedVisibility(
+        visible = state.visible,
+        enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 6 },
+        exit = fadeOut(tween(260)) + slideOutVertically(tween(260)) { it / 6 },
+        modifier = modifier,
+    ) {
     Column(
-        modifier
+        Modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color.Transparent, BarScrimMid, BarScrimTop)))
             .padding(top = 40.dp, bottom = 20.dp),
@@ -168,6 +178,7 @@ fun SliderControllerBar(state: SliderControllerUiState, modifier: Modifier = Mod
                 TimeText(formatPosition(state.durationMs))
             }
         }
+    }
     }
 }
 

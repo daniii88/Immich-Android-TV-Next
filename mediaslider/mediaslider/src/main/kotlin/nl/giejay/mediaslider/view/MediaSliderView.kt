@@ -3,6 +3,7 @@ package nl.giejay.mediaslider.view
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
@@ -99,8 +100,33 @@ open class MediaSliderView(context: Context) : ConstraintLayout(context) {
         playButton.setOnClickListener { controller.toggleSlideshow(true) }
     }
 
+    private var controllerBackCallback: androidx.activity.OnBackPressedCallback? = null
+
+    /**
+     * Back closes the controller bar first. On newer Android versions (predictive back) Back reaches the app through
+     * the activity's dispatcher instead of as a key event, so the bar needs a callback next to the key handling. It
+     * is added when the view attaches, i.e. before the overlay plugins add theirs, so an open info panel still wins.
+     */
+    private fun registerControllerBackCallback() {
+        if (controllerBackCallback != null) return
+        var ctx: Context? = context
+        while (ctx is android.content.ContextWrapper && ctx !is androidx.activity.ComponentActivity) ctx = ctx.baseContext
+        val activity = ctx as? androidx.activity.ComponentActivity ?: return
+        val callback = object : androidx.activity.OnBackPressedCallback(controller.isControllerVisible) {
+            override fun handleOnBackPressed() {
+                controller.hideOverlayControls()
+            }
+        }
+        val owner = findViewTreeLifecycleOwner()
+        if (owner != null) activity.onBackPressedDispatcher.addCallback(owner, callback)
+        else activity.onBackPressedDispatcher.addCallback(callback)
+        controllerBackCallback = callback
+        controller.onControllerVisibleChanged = { callback.isEnabled = it }
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        registerControllerBackCallback()
         if (!isVolumeReceiverRegistered) {
             val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
             context.registerReceiver(volumeReceiver, filter)
@@ -115,6 +141,9 @@ open class MediaSliderView(context: Context) : ConstraintLayout(context) {
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        controllerBackCallback?.remove()
+        controllerBackCallback = null
+        controller.onControllerVisibleChanged = {}
         composePager?.dispose()
         if (isVolumeReceiverRegistered) {
             try {

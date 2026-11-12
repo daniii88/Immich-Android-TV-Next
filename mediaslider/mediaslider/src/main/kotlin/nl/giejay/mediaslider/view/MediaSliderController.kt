@@ -49,6 +49,9 @@ class MediaSliderController(
         private set
 
     private var _isControllerVisible = false
+
+    /** Called whenever the controller bar is shown or hidden (the view uses it to claim the Back key). */
+    var onControllerVisibleChanged: (Boolean) -> Unit = {}
     val isControllerVisible: Boolean get() = _isControllerVisible
 
     /** Currently active ExoPlayer (for the video page that is in view). */
@@ -218,6 +221,7 @@ class MediaSliderController(
         }
         uiState.visible = true
         _isControllerVisible = true
+        onControllerVisibleChanged(true)
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(true, controllerRootView, this, config) }
 
         val isVideo = currentItemTypeOrNull() == SliderItemType.VIDEO
@@ -232,6 +236,7 @@ class MediaSliderController(
     fun hideOverlayControls() {
         uiState.visible = false
         _isControllerVisible = false
+        onControllerVisibleChanged(false)
         config.controllerPlugins.forEach { it.onControllerVisibilityChanged(false, controllerRootView, this, config) }
         stopProgressUpdates()
         restorePagerFocus()
@@ -256,7 +261,11 @@ class MediaSliderController(
         uiState.isVideo = isVideo
         uiState.onPrevious = { goToPreviousAsset() }
         uiState.onNext = { goToNextAsset() }
-        uiState.onSlideshow = { toggleSlideshow(true) }
+        uiState.onSlideshow = {
+            toggleSlideshow(true)
+            // a running slideshow shows the photos, not the controls
+            if (slideShowPlaying) hideOverlayControls()
+        }
         uiState.slideshowPlaying = slideShowPlaying
         uiState.isPlaying = currentPlayer?.isPlaying == true
         uiState.positionMs = 0L
@@ -309,6 +318,7 @@ class MediaSliderController(
         if (keepVisible) {
             uiState.visible = true
             _isControllerVisible = true
+            onControllerVisibleChanged(true)
             config.controllerPlugins.forEach {
                 it.onControllerVisibilityChanged(true, controllerRootView, this, config)
             }
@@ -322,6 +332,7 @@ class MediaSliderController(
         } else {
             uiState.visible = false
             _isControllerVisible = false
+            onControllerVisibleChanged(false)
         }
     }
 
